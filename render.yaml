@@ -18,3 +18,9 @@ services:
         generateValue: true
       - key: TRUST_PROXY
         value: "1"
+      # Render recibe todo el tráfico a través de Cloudflare: esta cabecera trae la IP real de cada cliente
+      # (si no llega, la app usa la IP de la conexión). Necesaria para que los límites sean por cliente.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
+      # Turnstile (opcional): agrega TURNSTILE_SITE_KEY y TURNSTILE_SECRET_KEY en Render → Environment.
+      # No las escribas en este archivo: el repositorio no es un lugar para claves.

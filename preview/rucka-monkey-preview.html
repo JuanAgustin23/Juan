@@ -2825,6 +2825,35 @@ const RM = (() => {
     });
   }
 
+  // Cloudflare Turnstile: carga el script solo cuando hace falta y dibuja el recuadro en `el`.
+  // Devuelve { token(): Promise<string>, reset() }. La verificación real se hace en el servidor.
+  let tsScript = null;
+  function turnstile(el, siteKey, action) {
+    tsScript ||= new Promise((ok, fail) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      sc.async = true;
+      sc.onload = ok;
+      sc.onerror = () => { tsScript = null; fail(new Error('No se pudo cargar la verificación de Cloudflare. Revisa tu conexión.')); };
+      document.head.append(sc);
+    });
+    let resolveToken;
+    let current = new Promise((r) => { resolveToken = r; });
+    let id = null;
+    const ready = tsScript.then(() => {
+      id = window.turnstile.render(el, {
+        sitekey: siteKey, action, language: 'es', theme: 'auto',
+        callback: (t) => resolveToken(t),
+        'expired-callback': () => { current = new Promise((r) => { resolveToken = r; }); },
+      });
+    });
+    return {
+      ready,
+      token: () => ready.then(() => current),
+      reset() { if (id != null) { window.turnstile.reset(id); current = new Promise((r) => { resolveToken = r; }); } },
+    };
+  }
+
   const store = {
     get(k, fallback) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* almacenamiento no disponible */ } },
@@ -2850,7 +2879,7 @@ const RM = (() => {
     return out.length ? `<ul class="mods">${out.join('')}</ul>` : '';
   }
 
-  return { money, esc, api, toast, sheet, confirm: confirmDialog, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
+  return { money, esc, api, toast, sheet, confirm: confirmDialog, turnstile, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
 })();
 </script>
 <script>'use strict';
@@ -3613,6 +3642,7 @@ const RMPreview = (() => {
         if (f) q('#coPreview').src = previewUrl;
       }
     });
+    let tsWidget = null;
     q('#coSend').addEventListener('click', async () => {
       const err = q('#coError');
       err.hidden = true;
@@ -3629,6 +3659,7 @@ const RMPreview = (() => {
       };
       const fd = new FormData();
       fd.append('order', JSON.stringify(order));
+      if (tsWidget) fd.append('turnstile', await tsWidget.token().catch(() => ''));
       if (file) fd.append('receipt', file);
       const btn = q('#coSend');
       btn.disabled = true;
@@ -3647,6 +3678,17 @@ const RMPreview = (() => {
         btn.textContent = 'Enviar pedido';
         err.textContent = e2.status ? e2.message : 'Sin conexión. Revisa tu internet y vuelve a tocar “Enviar pedido” (no se duplicará).';
         err.hidden = false;
+        // Solo si esta conexión ya envió varios pedidos seguidos, el servidor pide la verificación de Cloudflare.
+        if (e2.data?.code === 'TURNSTILE_REQUIRED' && e2.data.siteKey) {
+          if (!tsWidget) {
+            const box = document.createElement('div');
+            box.style.cssText = 'min-height:65px;margin:8px 0';
+            err.after(box);
+            tsWidget = RM.turnstile(box, e2.data.siteKey, 'pedido');
+            tsWidget.ready.catch((e3) => { err.textContent = e3.message; });
+          } else tsWidget.reset();
+          err.textContent = 'Confirma la verificación de abajo y vuelve a tocar “Enviar pedido”.';
+        }
         if (['PRICE_CHANGED', 'MENU_CHANGED', 'UNAVAILABLE'].includes(e2.data?.code)) {
           store.del(CHECKOUT_KEY);
           await loadMenu();
@@ -3747,8 +3789,11 @@ const RMPreview = (() => {
   };
 
   // ---------------- Sesión ----------------
+  let loginSiteKey = null;
+  let loginTs = null;
   async function boot() {
-    const { loggedIn } = await api('/api/admin/session');
+    const { loggedIn, turnstileSiteKey } = await api('/api/admin/session');
+    loginSiteKey = turnstileSiteKey || null;
     if (!loggedIn) return showLogin();
     $('#login').hidden = true;
     $('#shell').hidden = false;
@@ -3761,18 +3806,33 @@ const RMPreview = (() => {
     $('#shell').hidden = true;
     $('#demoBanner').hidden = true;
     $('#login').hidden = false;
+    // Verificación de Cloudflare Turnstile (solo si el servidor la tiene activada)
+    if (loginSiteKey && !loginTs && RM.turnstile) {
+      const box = document.createElement('div');
+      box.id = 'loginTs';
+      box.style.minHeight = '65px';
+      $('#loginErr').before(box);
+      loginTs = RM.turnstile(box, loginSiteKey, 'login');
+      loginTs.ready.catch((e) => { $('#loginErr').textContent = e.message; $('#loginErr').hidden = false; });
+    }
     $('#pw').focus();
   }
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('#loginErr').hidden = true;
+    const btn = $('#loginForm button');
+    btn.disabled = true;
     try {
-      await api('/api/admin/login', { method: 'POST', json: { password: $('#pw').value } });
+      const turnstileToken = loginTs ? await loginTs.token() : undefined;
+      await api('/api/admin/login', { method: 'POST', json: { password: $('#pw').value, turnstileToken } });
       $('#pw').value = '';
       boot();
     } catch (err) {
       $('#loginErr').textContent = err.message;
       $('#loginErr').hidden = false;
+      loginTs?.reset();
+    } finally {
+      btn.disabled = false;
     }
   });
   // Cualquier 401 devuelve al inicio de sesión.
@@ -4282,6 +4342,7 @@ const RMPreview = (() => {
       </form>
       </div>
       <div>
+      <div class="card-s" id="secCard"><h2>Seguridad</h2><p class="hint">Cargando…</p></div>
       <div class="card-s">
         <h2>QR de prueba</h2>
         <p class="hint">Escanéalo con el otro teléfono para abrir esta vista previa como cliente. <b>No lo imprimas para clientes.</b></p>
@@ -4305,6 +4366,16 @@ const RMPreview = (() => {
       </form>
       <button class="btn btn-block" id="logout" hidden>Cerrar sesión</button>
       </div></div>`;
+
+    call('/api/admin/security').then((d) => {
+      const yes = (b) => (b ? '<span class="tag tag-ok">Activo</span>' : '<span class="tag">No configurado</span>');
+      $('#secCard').innerHTML = `<h2>Seguridad</h2>
+        <p style="margin:0 0 6px">Conexión cifrada (HTTPS): ${yes(d.https)}</p>
+        <p style="margin:0 0 6px">Verificación Cloudflare Turnstile: ${yes(d.turnstile)}</p>
+        <p style="margin:0 0 6px">Candado de origen (dominio propio en Cloudflare): ${yes(d.candadoOrigen)}</p>
+        <p class="hint" style="margin:8px 0 4px">Tu IP según el servidor: <b>${esc(d.ipDetectada)}</b> (fuente: ${esc(d.fuenteIp)}). Debe ser la IP de tu conexión, no la de un servidor intermedio.</p>
+        <p class="hint" style="margin:0">Límites: ${esc(d.limites.loginFallosPorIp)} intentos fallidos de acceso; pedidos sin verificación ${esc(d.limites.pedidosSinDesafio)}; máximo ${esc(d.limites.pedidosMaximo)}.</p>`;
+    }).catch(() => { $('#secCard').innerHTML = '<h2>Seguridad</h2><p class="hint">No se pudo cargar el diagnóstico.</p>'; });
 
     $('#bankForm').addEventListener('submit', async (e) => {
       e.preventDefault();

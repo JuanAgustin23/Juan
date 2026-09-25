@@ -195,6 +195,10 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
     await shot(caja, 'cajero-comprobante.png');
     await caja.click('.sheet [data-close]');
     log('comprobante abierto de forma privada');
+    // El teléfono del cliente conoce la dirección exacta del comprobante y de los pedidos, pero no tiene sesión
+    const fuera = await cli.evaluate(async () => Promise.all(['/api/admin/orders/1/receipt', '/api/admin/orders', '/api/admin/security'].map(async (u) => (await fetch(u)).status)));
+    assert.deepEqual(fuera, [401, 401, 401]);
+    log('sin sesión, el cliente no puede abrir el comprobante ni la lista de pedidos aunque conozca la dirección');
 
     await card.locator('[data-act=next]').click();
     await caja.waitForSelector('.sheet [data-ok]');

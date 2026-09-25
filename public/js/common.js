@@ -81,6 +81,35 @@ const RM = (() => {
     });
   }
 
+  // Cloudflare Turnstile: carga el script solo cuando hace falta y dibuja el recuadro en `el`.
+  // Devuelve { token(): Promise<string>, reset() }. La verificación real se hace en el servidor.
+  let tsScript = null;
+  function turnstile(el, siteKey, action) {
+    tsScript ||= new Promise((ok, fail) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      sc.async = true;
+      sc.onload = ok;
+      sc.onerror = () => { tsScript = null; fail(new Error('No se pudo cargar la verificación de Cloudflare. Revisa tu conexión.')); };
+      document.head.append(sc);
+    });
+    let resolveToken;
+    let current = new Promise((r) => { resolveToken = r; });
+    let id = null;
+    const ready = tsScript.then(() => {
+      id = window.turnstile.render(el, {
+        sitekey: siteKey, action, language: 'es', theme: 'auto',
+        callback: (t) => resolveToken(t),
+        'expired-callback': () => { current = new Promise((r) => { resolveToken = r; }); },
+      });
+    });
+    return {
+      ready,
+      token: () => ready.then(() => current),
+      reset() { if (id != null) { window.turnstile.reset(id); current = new Promise((r) => { resolveToken = r; }); } },
+    };
+  }
+
   const store = {
     get(k, fallback) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* almacenamiento no disponible */ } },
@@ -106,5 +135,5 @@ const RM = (() => {
     return out.length ? `<ul class="mods">${out.join('')}</ul>` : '';
   }
 
-  return { money, esc, api, toast, sheet, confirm: confirmDialog, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
+  return { money, esc, api, toast, sheet, confirm: confirmDialog, turnstile, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
 })();

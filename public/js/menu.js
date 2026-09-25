@@ -291,6 +291,7 @@
         if (f) q('#coPreview').src = previewUrl;
       }
     });
+    let tsWidget = null;
     q('#coSend').addEventListener('click', async () => {
       const err = q('#coError');
       err.hidden = true;
@@ -307,6 +308,7 @@
       };
       const fd = new FormData();
       fd.append('order', JSON.stringify(order));
+      if (tsWidget) fd.append('turnstile', await tsWidget.token().catch(() => ''));
       if (file) fd.append('receipt', file);
       const btn = q('#coSend');
       btn.disabled = true;
@@ -325,6 +327,17 @@
         btn.textContent = 'Enviar pedido';
         err.textContent = e2.status ? e2.message : 'Sin conexión. Revisa tu internet y vuelve a tocar “Enviar pedido” (no se duplicará).';
         err.hidden = false;
+        // Solo si esta conexión ya envió varios pedidos seguidos, el servidor pide la verificación de Cloudflare.
+        if (e2.data?.code === 'TURNSTILE_REQUIRED' && e2.data.siteKey) {
+          if (!tsWidget) {
+            const box = document.createElement('div');
+            box.style.cssText = 'min-height:65px;margin:8px 0';
+            err.after(box);
+            tsWidget = RM.turnstile(box, e2.data.siteKey, 'pedido');
+            tsWidget.ready.catch((e3) => { err.textContent = e3.message; });
+          } else tsWidget.reset();
+          err.textContent = 'Confirma la verificación de abajo y vuelve a tocar “Enviar pedido”.';
+        }
         if (['PRICE_CHANGED', 'MENU_CHANGED', 'UNAVAILABLE'].includes(e2.data?.code)) {
           store.del(CHECKOUT_KEY);
           await loadMenu();

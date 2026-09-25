@@ -59,6 +59,8 @@ Direcciones:
 
 Límites del plan gratuito: el servicio se duerme tras 15 minutos sin uso, y la primera visita después tarda cerca de un minuto en despertar. Además, **el disco no es persistente**: los pedidos y las fotos se borran si el servicio se reinicia o se vuelve a desplegar. Sirve para probar. Para operar de verdad, usa un plan con disco (Render Starter + Disk) o el `Dockerfile` en otro hosting con volumen montado en `/data`.
 
+Seguridad, Cloudflare y Turnstile: ver [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).
+
 ## Ejecutar
 
 Se necesita Node.js 22.13 o superior. La base de datos es SQLite, incluida en Node, y no hay que instalar nada más.

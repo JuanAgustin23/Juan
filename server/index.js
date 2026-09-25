@@ -9,6 +9,7 @@ const dbm = require('./db');
 const { createAuth } = require('./auth');
 const { createOrder, itemsOf, changeStatus, OrderError } = require('./orders');
 const { chileDayRange, TZ } = require('./time');
+const { clientIp, ipSource, RateLimiter, turnstile, originGuard } = require('./security');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -18,27 +19,48 @@ function createApp() {
     get: (k) => db.prepare('SELECT value FROM settings WHERE key = ?').get(k)?.value ?? null,
     set: (k, v) => db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(k, String(v)),
   };
-  const auth = createAuth(settings);
+  const auth = createAuth(settings, db);
   const app = express();
   // Detrás del HTTPS del hosting: "1" = confiar en un proxy (número, no texto, para que Express lo entienda).
   const tp = process.env.TRUST_PROXY;
   if (tp) app.set('trust proxy', /^\d+$/.test(tp) ? Number(tp) : tp === 'true' ? true : tp);
   app.disable('x-powered-by');
 
+  // Con dominio propio en Cloudflare + ORIGIN_SECRET: nadie puede saltarse Cloudflare entrando directo al hosting.
+  app.use(originGuard);
+
+  // Cabeceras de seguridad. Turnstile (si está activo) necesita cargar su script y su recuadro desde Cloudflare.
+  const CF = turnstile.enabled() ? ' https://challenges.cloudflare.com' : '';
+  const CSP = `default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'${CF}; frame-src${CF || " 'none'"}; connect-src 'self'${CF}; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
   app.use((req, res, next) => {
     if (req.secure) res.set('Strict-Transport-Security', 'max-age=15552000');
     res.set({
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'same-origin',
       'X-Frame-Options': 'DENY',
-      'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Content-Security-Policy': CSP,
     });
+    next();
+  });
+
+  // Límite general de la API por cliente (la carta consulta el estado cada 5 s y la caja cada 4 s: muy por debajo).
+  const apiLimiter = new RateLimiter(60 * 1000);
+  app.use('/api', (req, res, next) => {
+    if (req.path === '/health') return next();
+    const ip = clientIp(req);
+    if (apiLimiter.count(ip) >= 300) {
+      res.set('Retry-After', String(apiLimiter.retryAfter(ip)));
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Espera un momento.' });
+    }
+    apiLimiter.add(ip);
     next();
   });
   app.use(express.json({ limit: '200kb' }));
 
   // ---------- Subida de imágenes (validadas por contenido, no por extensión) ----------
-  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 4, fieldSize: 100 * 1024, parts: 6 } });
   function sniffImage(buf) {
     if (!buf || buf.length < 12) return null;
     if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return { mime: 'image/jpeg', ext: 'jpg' };
@@ -116,21 +138,30 @@ function createApp() {
     res.json({ settings: publicSettings(), categories: catalog({ includeInactive: false }).filter((c) => c.products.length) });
   });
 
-  const orderHits = new Map();
-  function orderRateLimited(ip) {
-    const now = Date.now();
-    const hits = (orderHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
-    hits.push(now);
-    orderHits.set(ip, hits);
-    return hits.length > 20;
-  }
+  // Pedidos por cliente cada 10 minutos. Los primeros pasan sin ningún desafío; desde el 5.º se pide
+  // Turnstile (si está configurado, casi siempre sin clics). Sobre el máximo, se rechaza.
+  const orderLimiter = new RateLimiter(10 * 60 * 1000);
+  const ORDER_SOFT = 4;
+  const ORDER_HARD = () => (turnstile.enabled() ? 30 : 20);
+  const orderPreCheck = (req, res, next) => {
+    const ip = clientIp(req);
+    if (orderLimiter.count(ip) >= ORDER_HARD()) {
+      res.set('Retry-After', String(orderLimiter.retryAfter(ip)));
+      return res.status(429).json({ error: 'Demasiados pedidos seguidos desde esta conexión. Espera unos minutos o pide en caja.', code: 'RATE' });
+    }
+    next();
+  };
 
-  app.post('/api/orders', withUpload('receipt'), handle((req, res) => {
-    if (orderRateLimited(req.ip)) throw new OrderError(429, 'RATE', 'Demasiados pedidos seguidos. Espera unos minutos.');
+  app.post('/api/orders', orderPreCheck, withUpload('receipt'), handle(async (req, res) => {
+    const ip = clientIp(req);
     let raw;
     try { raw = JSON.parse(req.body?.order || 'null'); } catch { throw new OrderError(400, 'BAD_REQUEST', 'Pedido inválido'); }
-    // Si es un reenvío del mismo pedido, no se guarda el archivo de nuevo.
+    // Si es un reenvío del mismo pedido, no se guarda el archivo de nuevo ni cuenta para el límite.
     const already = raw?.idempotencyKey && db.prepare('SELECT 1 FROM orders WHERE idempotency_key = ?').get(String(raw.idempotencyKey));
+    if (!already && turnstile.enabled() && orderLimiter.count(ip) >= ORDER_SOFT) {
+      const t = await turnstile.verify(req.body?.turnstile, ip, 'pedido');
+      if (!t.ok) throw new OrderError(428, 'TURNSTILE_REQUIRED', 'Confirma que eres una persona para enviar otro pedido.', { siteKey: turnstile.siteKey() });
+    }
     let receipt = null;
     if (req.file && !already) {
       if (raw?.paymentMethod !== 'transferencia') throw new OrderError(400, 'BAD_REQUEST', 'El comprobante solo aplica a transferencias');
@@ -138,6 +169,7 @@ function createApp() {
     }
     try {
       const { order, duplicate } = createOrder(db, settings, raw, receipt);
+      if (!duplicate) orderLimiter.add(ip);
       res.status(duplicate ? 200 : 201).json({ code: order.code, token: order.public_token, total: order.total, duplicate });
     } catch (e) {
       if (receipt) fs.rmSync(path.join(dbm.RECEIPTS_DIR, receipt.file), { force: true });
@@ -160,11 +192,22 @@ function createApp() {
   const admin = express.Router();
   admin.post('/login', auth.login);
   admin.post('/logout', auth.logout);
-  admin.get('/session', (req, res) => res.json({ loggedIn: auth.isValid(req) }));
+  admin.get('/session', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ loggedIn: auth.isValid(req), turnstileSiteKey: turnstile.enabled() ? turnstile.siteKey() : null }); });
   admin.use(auth.requireAdmin);
   admin.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
   admin.post('/password', auth.changePassword);
+
+  // Diagnóstico de seguridad (solo caja): permite comprobar en el hosting real que la IP del cliente se lee bien.
+  admin.get('/security', (req, res) => {
+    const xff = String(req.headers['x-forwarded-for'] || '');
+    res.json({
+      ipDetectada: clientIp(req), fuenteIp: ipSource(req), https: req.secure,
+      cabeceras: { 'cf-connecting-ip': !!req.headers['cf-connecting-ip'], 'cf-ray': !!req.headers['cf-ray'], 'x-forwarded-for': xff ? xff.split(',').length : 0 },
+      turnstile: turnstile.enabled(), candadoOrigen: !!process.env.ORIGIN_SECRET,
+      limites: { loginFallosPorIp: '8 cada 15 min', pedidosSinDesafio: `${ORDER_SOFT} cada 10 min`, pedidosMaximo: `${ORDER_HARD()} cada 10 min`, api: '300 por minuto' },
+    });
+  });
 
   function adminOrder(o) {
     const events = db.prepare('SELECT status, detail, at FROM order_events WHERE order_id = ? ORDER BY at, id').all(o.id);
@@ -196,7 +239,7 @@ function createApp() {
   admin.get('/orders/:id/receipt', handle((req, res) => {
     const o = db.prepare('SELECT receipt_file, receipt_mime FROM orders WHERE id = ?').get(Number(req.params.id));
     if (!o?.receipt_file) throw new OrderError(404, 'NOT_FOUND', 'Sin comprobante');
-    res.set({ 'Content-Type': o.receipt_mime, 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline' });
+    res.set({ 'Content-Type': o.receipt_mime, 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; sandbox", 'Cross-Origin-Resource-Policy': 'same-origin' });
     res.sendFile(path.join(dbm.RECEIPTS_DIR, path.basename(o.receipt_file)));
   }));
 

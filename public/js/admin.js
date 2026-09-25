@@ -15,8 +15,11 @@
   };
 
   // ---------------- Sesión ----------------
+  let loginSiteKey = null;
+  let loginTs = null;
   async function boot() {
-    const { loggedIn } = await api('/api/admin/session');
+    const { loggedIn, turnstileSiteKey } = await api('/api/admin/session');
+    loginSiteKey = turnstileSiteKey || null;
     if (!loggedIn) return showLogin();
     $('#login').hidden = true;
     $('#shell').hidden = false;
@@ -29,18 +32,33 @@
     $('#shell').hidden = true;
     $('#demoBanner').hidden = true;
     $('#login').hidden = false;
+    // Verificación de Cloudflare Turnstile (solo si el servidor la tiene activada)
+    if (loginSiteKey && !loginTs && RM.turnstile) {
+      const box = document.createElement('div');
+      box.id = 'loginTs';
+      box.style.minHeight = '65px';
+      $('#loginErr').before(box);
+      loginTs = RM.turnstile(box, loginSiteKey, 'login');
+      loginTs.ready.catch((e) => { $('#loginErr').textContent = e.message; $('#loginErr').hidden = false; });
+    }
     $('#pw').focus();
   }
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('#loginErr').hidden = true;
+    const btn = $('#loginForm button');
+    btn.disabled = true;
     try {
-      await api('/api/admin/login', { method: 'POST', json: { password: $('#pw').value } });
+      const turnstileToken = loginTs ? await loginTs.token() : undefined;
+      await api('/api/admin/login', { method: 'POST', json: { password: $('#pw').value, turnstileToken } });
       $('#pw').value = '';
       boot();
     } catch (err) {
       $('#loginErr').textContent = err.message;
       $('#loginErr').hidden = false;
+      loginTs?.reset();
+    } finally {
+      btn.disabled = false;
     }
   });
   // Cualquier 401 devuelve al inicio de sesión.
@@ -551,6 +569,7 @@
       </form>
       </div>
       <div>
+      <div class="card-s" id="secCard"><h2>Seguridad</h2><p class="hint">Cargando…</p></div>
       <div class="card-s">
         <h2>QR de prueba</h2>
         <p class="hint">Para revisar la experiencia con tu teléfono. <b>No lo imprimas para clientes.</b></p>
@@ -574,6 +593,16 @@
       </form>
       <button class="btn btn-block" id="logout">Cerrar sesión</button>
       </div></div>`;
+
+    call('/api/admin/security').then((d) => {
+      const yes = (b) => (b ? '<span class="tag tag-ok">Activo</span>' : '<span class="tag">No configurado</span>');
+      $('#secCard').innerHTML = `<h2>Seguridad</h2>
+        <p style="margin:0 0 6px">Conexión cifrada (HTTPS): ${yes(d.https)}</p>
+        <p style="margin:0 0 6px">Verificación Cloudflare Turnstile: ${yes(d.turnstile)}</p>
+        <p style="margin:0 0 6px">Candado de origen (dominio propio en Cloudflare): ${yes(d.candadoOrigen)}</p>
+        <p class="hint" style="margin:8px 0 4px">Tu IP según el servidor: <b>${esc(d.ipDetectada)}</b> (fuente: ${esc(d.fuenteIp)}). Debe ser la IP de tu conexión, no la de un servidor intermedio.</p>
+        <p class="hint" style="margin:0">Límites: ${esc(d.limites.loginFallosPorIp)} intentos fallidos de acceso; pedidos sin verificación ${esc(d.limites.pedidosSinDesafio)}; máximo ${esc(d.limites.pedidosMaximo)}.</p>`;
+    }).catch(() => { $('#secCard').innerHTML = '<h2>Seguridad</h2><p class="hint">No se pudo cargar el diagnóstico.</p>'; });
 
     $('#bankForm').addEventListener('submit', async (e) => {
       e.preventDefault();
