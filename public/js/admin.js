@@ -554,7 +554,7 @@
       <div class="card-s">
         <h2>QR de prueba</h2>
         <p class="hint">Para revisar la experiencia con tu teléfono. <b>No lo imprimas para clientes.</b></p>
-        <label class="field"><span>Dirección de la demo</span><input class="input" id="qrBase" value="${esc(location.origin)}"></label>
+        <label class="field"><span>Dirección de la carta</span><input class="input" id="qrBase" value="${esc(location.origin)}"></label>
         <button class="btn btn-block" id="qrTest">Mostrar QR de prueba</button>
       </div>
       <div class="card-s">
@@ -594,7 +594,7 @@
           title: type === 'prueba' ? 'QR de prueba' : 'QR definitivo',
           body: `<div class="qr-box print-area">${type === 'prueba' ? '<div class="qr-label" style="color:var(--demo)">QR DE PRUEBA — NO PUBLICAR</div>' : '<div class="qr-label">Escanea y pide · Rucka Monkey</div>'}
             <div class="qr-svg">${d.svg}</div><div class="qr-url">${esc(d.url)}</div></div>`,
-          foot: '<button class="btn btn-block" data-print>Imprimir</button>',
+          foot: `<div class="o-actions">${d.png ? `<a class="btn btn-primary" href="${esc(d.png)}" download data-download>Descargar PNG</a>` : ''}<button class="btn" data-print>Imprimir</button></div>`,
         });
         $('[data-print]', sh.root).onclick = () => window.print();
       } catch (er) { toast(er.message, 4000); }

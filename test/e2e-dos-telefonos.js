@@ -49,7 +49,7 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
     console.log('\n[Teléfono del CAJERO] inicia sesión');
     const cajeroCtx = await browser.newContext(CAJERO);
     const caja = await cajeroCtx.newPage();
-    await caja.goto(`${BASE}/admin`);
+    await caja.goto(`${BASE}/caja`);
     await caja.fill('#pw', 'clave-cajero-2026');
     await caja.click('#loginForm button');
     await caja.waitForSelector('#shell:not([hidden])');
@@ -68,6 +68,14 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
     assert.ok(decoded, 'el QR se puede leer');
     assert.equal(decoded.data, `${BASE}/?origen=qr-prueba`);
     await shot(caja, 'cajero-qr-prueba.png');
+    const [descarga] = await Promise.all([caja.waitForEvent('download'), caja.click('.sheet [data-download]')]);
+    assert.match(descarga.suggestedFilename(), /^QR-PRUEBA-NO-PUBLICAR.*\.png$/);
+    const qrFile = path.join(SHOTS, '..', 'qr-prueba-descargado.png');
+    await descarga.saveAs(qrFile);
+    const dq = PNG.sync.read(fs.readFileSync(qrFile));
+    assert.equal(jsQR(new Uint8ClampedArray(dq.data), dq.width, dq.height).data, `${BASE}/?origen=qr-prueba`);
+    fs.rmSync(qrFile);
+    log('QR descargado como PNG y leído: abre solo la carta');
     await noHorizontalScroll(caja, 'ajustes (celular)');
     log(`QR de prueba leído correctamente → ${decoded.data}`);
     await caja.click('.sheet [data-close]');
@@ -83,6 +91,19 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
     assert.ok(await cli.isVisible('text=Precio de prueba'));
     assert.ok(await cli.isVisible('.thumb .tag >> text=Ilustración'));
     await noHorizontalScroll(cli, 'carta (celular)');
+    assert.equal(await cli.evaluate(() => document.querySelectorAll('a[href*="caja"], a[href*="admin"], [data-mode]').length), 0, 'la carta no tiene enlaces al panel');
+    // El cliente escribe a mano la dirección del panel: ve el inicio de sesión y nada más
+    const intruso = await clienteCtx.newPage();
+    await intruso.goto(`${BASE}/caja`);
+    await intruso.waitForSelector('#login:not([hidden])');
+    assert.equal(await intruso.locator('.order, .kpi, .prod').count(), 0);
+    const internas = await intruso.evaluate(async () => Promise.all(['/api/admin/orders', '/api/admin/stats', '/api/admin/catalog', '/api/admin/settings'].map(async (u) => (await fetch(u)).status)));
+    assert.deepEqual(internas, [401, 401, 401, 401]);
+    const edit = await intruso.evaluate(async () => (await fetch('/api/admin/products/1', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'rucka' }, body: '{"price":1}' })).status);
+    assert.equal(edit, 401);
+    await shot(intruso, 'cliente-intenta-abrir-caja.png');
+    await intruso.close();
+    log('la carta no enlaza al panel; escribir /caja sin sesión no muestra pedidos ni permite editar');
     await shot(cli, 'cliente-carta.png');
     log('carta abierta: categorías, imágenes rotuladas como ilustración, precios de prueba');
 
@@ -246,7 +267,7 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
     await pcCli.locator('.pay-opt', { hasText: 'Efectivo' }).click();
     await pcCli.click('#coSend');
     await pcCli.waitForSelector('.order-code');
-    await pcCaja.goto(`${BASE}/admin`);
+    await pcCaja.goto(`${BASE}/caja`);
     await pcCaja.fill('#pw', 'clave-cajero-2026');
     await pcCaja.click('#loginForm button');
     await pcCaja.locator('.order', { hasText: 'Diego' }).waitFor({ timeout: 10000 });

@@ -1,0 +1,20 @@
+# Despliegue de prueba en Render (https://render.com) — plan gratuito.
+# La contraseña del panel se genera sola (ADMIN_PASSWORD) y se ve en Render → Environment.
+# Ojo: en el plan gratuito el disco no es persistente: pedidos y fotos se borran si el servicio
+# se reinicia o se vuelve a desplegar. Sirve para probar; para operar de verdad agrega un disco.
+services:
+  - type: web
+    name: rucka-monkey-demo
+    runtime: node
+    plan: free
+    branch: claude/sleepy-archimedes-7i5f1u
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "1"

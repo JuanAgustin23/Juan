@@ -135,10 +135,6 @@ textarea.input { min-height: 84px; resize: vertical; }
 .box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 14px; }
 .box .check + .check { border-top: 1px solid var(--line); }
 
-.pv-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 700; }
-.pv-bar span { flex: 1; }
-.pv-bar button { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.35); background: transparent; color: inherit; font-weight: 800; cursor: pointer; }
-.pv-bar button.on { background: var(--bg); color: var(--ink); border-color: var(--bg); }
 .pv-fatal { max-width: 520px; margin: 40px auto; padding: 16px; }
 </style>
 <template id="css-cliente">/* Carta de clientes */
@@ -377,10 +373,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 130px; }
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; inset: 0; }
 }
-
-@media (min-width: 900px) { .pv-bar { margin-left: 200px; } }</template>
-<div class="pv-bar" role="navigation" aria-label="Vista"><span>Vista previa</span>
-  <button data-mode="cliente">Cliente</button><button data-mode="caja">Caja</button></div>
+</template>
 <div id="pvRoot"></div>
 <template id="tpl-cliente"><div class="demo-banner" id="demoBanner" hidden>
     MODO DEMOSTRACIÓN
@@ -3313,20 +3306,8 @@ const RMPreview = (() => {
 <script>
 (function () {
   'use strict';
-  var KEY = 'rm_preview_mode';
-  var mode = 'cliente';
-  try { mode = localStorage.getItem(KEY) || 'cliente'; } catch (e) { /* sin almacenamiento */ }
-  if (/^#pedido\//.test(location.hash)) mode = 'cliente';
-  if (mode !== 'caja') mode = 'cliente';
-  document.querySelectorAll('.pv-bar [data-mode]').forEach(function (b) {
-    b.classList.toggle('on', b.dataset.mode === mode);
-    b.addEventListener('click', function () {
-      if (b.dataset.mode === mode) return;
-      try { localStorage.setItem(KEY, b.dataset.mode); } catch (e) { /* */ }
-      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-      location.reload();
-    });
-  });
+  // La carta no tiene ningún acceso al panel. La caja se abre solo con el enlace que termina en #caja.
+  var mode = location.hash === '#caja' ? 'caja' : 'cliente';
   var style = document.createElement('style');
   style.textContent = document.getElementById('css-' + mode).content.textContent;
   document.head.appendChild(style);
@@ -4304,7 +4285,7 @@ const RMPreview = (() => {
       <div class="card-s">
         <h2>QR de prueba</h2>
         <p class="hint">Escanéalo con el otro teléfono para abrir esta vista previa como cliente. <b>No lo imprimas para clientes.</b></p>
-        <label class="field"><span>Dirección de la demo</span><input class="input" id="qrBase" value="${esc(s.test_url || '')}" placeholder="https://claude.ai/..."></label>
+        <label class="field"><span>Dirección de la carta</span><input class="input" id="qrBase" value="${esc(s.test_url || '')}" placeholder="https://claude.ai/..."></label>
         <button class="btn btn-block" id="qrTest">Mostrar QR de prueba</button>
       </div>
       <div class="card-s">

@@ -34,7 +34,7 @@ const adminJs = patch(read('public/js/admin.js'), [
   ["state.orders.find((x) => x.id === Number(b.closest('[data-id]').dataset.id))", "state.orders.find((x) => String(x.id) === b.closest('[data-id]').dataset.id)"],
   ['<input class="input" id="qrBase" value="${esc(location.origin)}">', '<input class="input" id="qrBase" value="${esc(s.test_url || \'\')}" placeholder="https://claude.ai/...">'],
   // window.print() no funciona dentro de claude.ai
-  ["foot: '<button class=\"btn btn-block\" data-print>Imprimir</button>',", "foot: '<p class=\"hint\" style=\"margin:0\">Para imprimirlo, toma una captura de pantalla.</p>',"],
+  ["foot: `<div class=\"o-actions\">${d.png ? `<a class=\"btn btn-primary\" href=\"${esc(d.png)}\" download data-download>Descargar PNG</a>` : ''}<button class=\"btn\" data-print>Imprimir</button></div>`,", "foot: '<p class=\"hint\" style=\"margin:0\">Para imprimirlo, toma una captura de pantalla.</p>',"],
   ["        $('[data-print]', sh.root).onclick = () => window.print();\n", ''],
   ['<form class="card-s" id="pwForm">', '<form class="card-s" id="pwForm" hidden>'],
   ['<button class="btn btn-block" id="logout">', '<button class="btn btn-block" id="logout" hidden>'],
@@ -57,17 +57,10 @@ const qrLib = fs.readFileSync(require.resolve('qrcode-generator/qrcode.js'), 'ut
 const html = `<title>Rucka Monkey Demo</title>
 <meta name="description" content="Vista previa de la carta con pedidos y del panel de caja de Rucka Monkey (modo demostración)">
 <style>${read('public/css/base.css')}
-.pv-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 700; }
-.pv-bar span { flex: 1; }
-.pv-bar button { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.35); background: transparent; color: inherit; font-weight: 800; cursor: pointer; }
-.pv-bar button.on { background: var(--bg); color: var(--ink); border-color: var(--bg); }
 .pv-fatal { max-width: 520px; margin: 40px auto; padding: 16px; }
 </style>
 <template id="css-cliente">${read('public/css/menu.css')}</template>
-<template id="css-caja">${read('public/css/admin.css')}
-@media (min-width: 900px) { .pv-bar { margin-left: 200px; } }</template>
-<div class="pv-bar" role="navigation" aria-label="Vista"><span>Vista previa</span>
-  <button data-mode="cliente">Cliente</button><button data-mode="caja">Caja</button></div>
+<template id="css-caja">${read('public/css/admin.css')}</template>
 <div id="pvRoot"></div>
 <template id="tpl-cliente">${menuBody}</template>
 <template id="tpl-caja">${adminBody}</template>
@@ -78,20 +71,8 @@ const html = `<title>Rucka Monkey Demo</title>
 <script>
 (function () {
   'use strict';
-  var KEY = 'rm_preview_mode';
-  var mode = 'cliente';
-  try { mode = localStorage.getItem(KEY) || 'cliente'; } catch (e) { /* sin almacenamiento */ }
-  if (/^#pedido\\//.test(location.hash)) mode = 'cliente';
-  if (mode !== 'caja') mode = 'cliente';
-  document.querySelectorAll('.pv-bar [data-mode]').forEach(function (b) {
-    b.classList.toggle('on', b.dataset.mode === mode);
-    b.addEventListener('click', function () {
-      if (b.dataset.mode === mode) return;
-      try { localStorage.setItem(KEY, b.dataset.mode); } catch (e) { /* */ }
-      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-      location.reload();
-    });
-  });
+  // La carta no tiene ningún acceso al panel. La caja se abre solo con el enlace que termina en #caja.
+  var mode = location.hash === '#caja' ? 'caja' : 'cliente';
   var style = document.createElement('style');
   style.textContent = document.getElementById('css-' + mode).content.textContent;
   document.head.appendChild(style);

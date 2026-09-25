@@ -29,8 +29,7 @@ const noHScroll = async (page, where) => {
     await cajaCtx.addCookies([{ name: 'snapfail', value: '1', url: BASE }]);
     const caja = await cajaCtx.newPage();
     caja.on('pageerror', (e) => errors.push('caja: ' + e.message));
-    await caja.goto(BASE);
-    await caja.click('.pv-bar [data-mode=caja]');
+    await caja.goto(BASE + '#caja');
     await caja.waitForSelector('#shell:not([hidden])');
     await caja.waitForSelector('#orders .empty');
     await noHScroll(caja, 'caja');
@@ -114,7 +113,9 @@ const noHScroll = async (page, where) => {
     log('QR de prueba generado y pedidos de demostración borrados');
 
     // Un cliente sin permisos de edición no puede abrir la caja
-    await cli.click('.pv-bar [data-mode=caja]');
+    assert.equal(await cli.evaluate(() => document.querySelectorAll('.pv-bar, [data-mode], a[href*="caja"]').length), 0, 'la carta no enlaza a la caja');
+    await cli.goto(BASE + '#caja');
+    await cli.reload();
     await cli.waitForSelector('#login:not([hidden])');
     log('un visitante que no es dueño ni editor ve la caja bloqueada');
 

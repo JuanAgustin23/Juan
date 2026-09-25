@@ -12,7 +12,7 @@ process.env.ADMIN_PASSWORD = 'clave-de-prueba-123';
 const { createApp } = require('../server/index.js');
 const { chileDayRange } = require('../server/time.js');
 
-let server, base, cookie = '';
+let server, base, cookie = '', adminRouter;
 const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082', 'hex');
 
 async function req(method, url, { json, form, auth = false, headers = {} } = {}) {
@@ -37,8 +37,9 @@ let menu;
 const product = (name) => menu.categories.flatMap((c) => c.products).find((p) => p.name === name);
 
 before(async () => {
-  const { app } = createApp();
-  server = app.listen(0);
+  const created = createApp();
+  adminRouter = created.adminRouter;
+  server = created.app.listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
   menu = (await req('GET', '/api/menu')).data;
@@ -66,6 +67,27 @@ test('el panel está protegido en el servidor', async () => {
   // Sin la cabecera anti-CSRF se rechazan las modificaciones
   const noCsrf = await fetch(base + '/api/admin/settings', { method: 'PATCH', headers: { cookie, 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(noCsrf.status, 403);
+});
+
+test('todas las funciones internas del panel exigen sesión (no solo la pantalla)', async () => {
+  const PUBLIC = new Set(['/login', '/logout', '/session']);
+  const routes = adminRouter.stack.filter((l) => l.route).flatMap((l) => Object.keys(l.route.methods).map((m) => [m.toUpperCase(), l.route.path]));
+  assert.ok(routes.length >= 25, `se revisaron ${routes.length} rutas`);
+  for (const [method, p] of routes) {
+    if (PUBLIC.has(p)) continue;
+    const url = '/api/admin' + p.replace(/:id/g, '1');
+    const r = await fetch(base + url, { method, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'rucka' }, body: method === 'GET' ? undefined : '{}' });
+    assert.equal(r.status, 401, `${method} ${url} sin sesión`);
+    const forged = await fetch(base + url, { method, headers: { cookie: 'rm_admin=9999999999999.abc.firmafalsa', 'X-Requested-With': 'rucka' } });
+    assert.equal(forged.status, 401, `${method} ${url} con cookie falsificada`);
+  }
+  // La pantalla del panel se puede abrir, pero no trae datos
+  const page = await (await fetch(base + '/caja')).text();
+  assert.ok(page.includes('id="login"') && !page.includes('DEMO-'));
+  // La carta no enlaza al panel
+  const carta = (await (await fetch(base + '/')).text()) + (await (await fetch(base + '/js/menu.js')).text());
+  assert.doesNotMatch(carta, /href=["'`][^"'`]*(\/caja|\/admin)/);
+  assert.doesNotMatch(carta, /\/api\/admin/);
 });
 
 let order1;
@@ -203,6 +225,10 @@ test('no se puede salir del modo demostración con datos provisionales', async (
   const qrTest = await req('GET', '/api/admin/qr?type=prueba&base=https://demo.ejemplo.cl', { auth: true });
   assert.equal(qrTest.data.url, 'https://demo.ejemplo.cl/?origen=qr-prueba');
   assert.match(qrTest.data.svg, /^<svg/);
+  const png = await fetch(base + qrTest.data.png, { headers: { cookie } });
+  assert.equal(png.headers.get('content-type'), 'image/png');
+  assert.match(png.headers.get('content-disposition'), /attachment; filename="QR-PRUEBA/);
+  assert.equal((await fetch(base + qrTest.data.png)).status, 401);
 });
 
 test('día de Chile con cambio de horario', () => {

@@ -7,7 +7,7 @@ Hay dos partes, y las dos funcionan completas en un celular:
 | Parte | Dirección | Para quién |
 |---|---|---|
 | Carta y pedidos | `/` (a la que lleva el QR) | Clientes |
-| Panel de caja y administración | `/admin` (protegido con contraseña) | Cajero o dueño |
+| Panel de caja y administración | `/caja` (protegido con contraseña; la carta no tiene ningún enlace hacia él) | Cajero o dueño |
 
 ## Qué hace
 
@@ -44,6 +44,21 @@ Hay dos partes, y las dos funcionan completas en un celular:
 
 Solo sirve para probar la experiencia. En la vista previa la lógica corre en el navegador, la caja se abre para el dueño o los editores de la página en claude.ai (sin contraseña) y los clientes necesitan una cuenta con acceso a la página. La protección completa (contraseña, comprobantes privados, recálculo en el servidor) está en la versión Node descrita abajo.
 
+## Publicar la demo en internet (dos dispositivos, cualquier red)
+
+El repositorio trae `render.yaml` para publicarlo gratis en Render. Así la carta y la caja quedan en una dirección `https://…onrender.com` y los dos dispositivos se conectan al mismo servidor y a la misma base de datos, cada uno con su propia conexión a internet.
+
+1. Crea una cuenta en https://render.com. Puedes entrar con tu cuenta de GitHub.
+2. En Render, entra a **New → Blueprint** y conecta el repositorio `juanagustin23/juan`. Render lee `render.yaml`, que despliega la rama `claude/sleepy-archimedes-7i5f1u`. Confirma con **Apply**.
+3. Espera a que termine el despliegue (2 a 4 minutos). Arriba verás la dirección, por ejemplo `https://rucka-monkey-demo.onrender.com`.
+4. La contraseña del panel se generó sola. Para verla, abre el servicio → **Environment** → `ADMIN_PASSWORD` → ojo para mostrarla. No viaja por chat ni queda en el código.
+
+Direcciones:
+- Carta (clientes): `https://<tu-servicio>.onrender.com/`
+- Caja: `https://<tu-servicio>.onrender.com/caja`
+
+Límites del plan gratuito: el servicio se duerme tras 15 minutos sin uso, y la primera visita después tarda cerca de un minuto en despertar. Además, **el disco no es persistente**: los pedidos y las fotos se borran si el servicio se reinicia o se vuelve a desplegar. Sirve para probar. Para operar de verdad, usa un plan con disco (Render Starter + Disk) o el `Dockerfile` en otro hosting con volumen montado en `/data`.
+
 ## Ejecutar
 
 Se necesita Node.js 22.13 o superior. La base de datos es SQLite, incluida en Node, y no hay que instalar nada más.
@@ -52,7 +67,7 @@ Se necesita Node.js 22.13 o superior. La base de datos es SQLite, incluida en No
 npm install
 ADMIN_PASSWORD='una-clave-larga' npm start
 # Carta:  http://localhost:3000
-# Caja:   http://localhost:3000/admin
+# Caja:   http://localhost:3000/caja
 ```
 
 Si no defines `ADMIN_PASSWORD`, la primera vez se genera una contraseña y se muestra en la consola. Se puede cambiar desde **Ajustes**.
@@ -66,7 +81,7 @@ Si no defines `ADMIN_PASSWORD`, la primera vez se genera una contraseña y se mu
 
 ### Probar con dos teléfonos
 1. Levanta el servidor en un computador conectado a la misma red Wi-Fi que los teléfonos, o en un hosting de prueba.
-2. En el **teléfono del cajero**, abre `http://<IP-del-computador>:3000/admin`, inicia sesión y ve a **Ajustes → Mostrar QR de prueba**. En "Dirección de la demo" pon la dirección a la que llegan los teléfonos.
+2. En el **teléfono del cajero**, abre `http://<IP-del-computador>:3000/caja`, inicia sesión y ve a **Ajustes → Mostrar QR de prueba**. En "Dirección de la demo" pon la dirección a la que llegan los teléfonos.
 3. Escanea ese QR con el **teléfono del cliente**, arma un pedido y envíalo. Aparecerá solo en el teléfono del cajero.
 
 También puedes generar el QR como archivo: `npm run qr -- http://192.168.1.50:3000` crea `docs/qr/QR-PRUEBA-NO-PUBLICAR.png`.

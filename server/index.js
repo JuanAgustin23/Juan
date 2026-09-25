@@ -20,10 +20,13 @@ function createApp() {
   };
   const auth = createAuth(settings);
   const app = express();
-  if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY);
+  // Detrás del HTTPS del hosting: "1" = confiar en un proxy (número, no texto, para que Express lo entienda).
+  const tp = process.env.TRUST_PROXY;
+  if (tp) app.set('trust proxy', /^\d+$/.test(tp) ? Number(tp) : tp === 'true' ? true : tp);
   app.disable('x-powered-by');
 
-  app.use((_req, res, next) => {
+  app.use((req, res, next) => {
+    if (req.secure) res.set('Strict-Transport-Security', 'max-age=15552000');
     res.set({
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'same-origin',
@@ -107,6 +110,7 @@ function createApp() {
   }
 
   // ---------- API pública (clientes) ----------
+  app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.get('/api/menu', (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({ settings: publicSettings(), categories: catalog({ includeInactive: false }).filter((c) => c.products.length) });
@@ -422,7 +426,7 @@ function createApp() {
     res.json({ demoMode: enable });
   }));
 
-  admin.get('/qr', handle(async (req, res) => {
+  function qrTarget(req) {
     const type = req.query.type === 'final' ? 'final' : 'prueba';
     let url;
     if (type === 'final') {
@@ -436,8 +440,20 @@ function createApp() {
       try { u = new URL(base); } catch { throw new OrderError(400, 'BAD_REQUEST', 'Dirección inválida'); }
       url = `${u.origin}/?origen=qr-prueba`;
     }
+    return { type, url };
+  }
+  admin.get('/qr', handle(async (req, res) => {
+    const { type, url } = qrTarget(req);
     const svg = await QRCode.toString(url, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#1b1208', light: '#ffffff' } });
-    res.json({ type, url, svg });
+    res.json({ type, url, svg, png: `/api/admin/qr.png?${new URLSearchParams(req.query)}` });
+  }));
+  // QR descargable como imagen PNG
+  admin.get('/qr.png', handle(async (req, res) => {
+    const { type, url } = qrTarget(req);
+    const png = await QRCode.toBuffer(url, { type: 'png', margin: 3, width: 1024, errorCorrectionLevel: 'M' });
+    const name = type === 'final' ? 'QR-carta-Rucka-Monkey.png' : 'QR-PRUEBA-NO-PUBLICAR-Rucka-Monkey.png';
+    res.set({ 'Content-Type': 'image/png', 'Content-Disposition': `attachment; filename="${name}"` });
+    res.send(png);
   }));
 
   app.use('/api/admin', admin);
@@ -445,11 +461,16 @@ function createApp() {
 
   // ---------- Archivos estáticos ----------
   app.use('/fotos', express.static(dbm.UPLOADS_DIR, { maxAge: '7d', index: false }));
-  app.get(['/admin', '/admin/'], (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'admin.html')));
+  // Panel de caja: interfaz aparte de la carta. La página no contiene datos; todo lo interno exige sesión en /api/admin.
+  app.get(['/caja', '/caja/', '/admin', '/admin/'], (_req, res) => {
+    res.set({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' });
+    res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+  });
+  app.get('/admin.html', (_req, res) => res.redirect(301, '/caja'));
   app.get('/pedido/:token', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
   app.use(express.static(PUBLIC_DIR, { index: 'index.html', maxAge: 0 }));
 
-  return { app, db, settings };
+  return { app, db, settings, adminRouter: admin };
 }
 
 if (require.main === module) {
