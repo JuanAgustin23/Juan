@@ -51,7 +51,7 @@ h1, h2, h3 { line-height: 1.15; margin: 0; }
 [hidden] { display: none !important; }
 
 .demo-banner {
-  position: sticky; top: 0; z-index: 40; background: var(--demo); color: #fff; text-align: center;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--demo); color: #fff; text-align: center;
   font-size: 13px; font-weight: 700; padding: 7px 12px; letter-spacing: .02em;
 }
 .demo-banner small { display: block; font-weight: 500; opacity: .9; }

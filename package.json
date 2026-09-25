@@ -11,7 +11,9 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "qr": "node scripts/make-qr.js"
+    "qr": "node scripts/make-qr.js",
+    "preview:build": "node scripts/build-preview.js",
+    "preview:test": "node scripts/build-preview.js && node test/e2e-preview.js"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "jsqr": "^1.4.0",
     "playwright": "1.56",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "qrcode-generator": "^1.4.4"
   }
 }

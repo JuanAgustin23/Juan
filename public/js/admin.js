@@ -457,7 +457,7 @@
         sh.close();
         loadCatalog();
       }
-      if (e.target.closest('#delProd') && confirm(`¿Eliminar “${p.name}” definitivamente?`)) {
+      if (e.target.closest('#delProd') && await RM.confirm(`¿Eliminar “${p.name}” definitivamente?`, { ok: 'Eliminar', danger: true })) {
         await call(`/api/admin/products/${p.id}`, { method: 'DELETE' }).catch((er) => toast(er.message));
         sh.close();
         loadCatalog();
@@ -602,7 +602,7 @@
     $('#qrTest').onclick = () => qr('prueba');
     $('#qrFinal')?.addEventListener('click', () => qr('final'));
     $('#goLive')?.addEventListener('click', async () => {
-      if (!confirm('¿Confirmas que precios, productos, descripciones y datos bancarios son los reales y fueron revisados?')) return;
+      if (!await RM.confirm('¿Confirmas que precios, productos, descripciones y datos bancarios son los reales y fueron revisados?', { ok: 'Sí, pasar a operación real' })) return;
       try { await call('/api/admin/demo-mode', { method: 'POST', json: { enabled: false } }); toast('Operación real activada'); renderSettings(); } catch (er) { toast(er.message, 4000); }
     });
     $('#goDemo')?.addEventListener('click', async () => {
@@ -610,7 +610,7 @@
       renderSettings();
     });
     $('#delDemo').onclick = async () => {
-      if (!confirm('¿Borrar todos los pedidos de demostración y sus comprobantes?')) return;
+      if (!await RM.confirm('¿Borrar todos los pedidos de demostración y sus comprobantes?', { ok: 'Borrar', danger: true })) return;
       const r2 = await call('/api/admin/demo-orders', { method: 'DELETE' });
       toast(`${r2.deleted} pedido(s) de demostración borrados`);
       poll();

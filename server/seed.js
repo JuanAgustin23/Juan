@@ -102,4 +102,4 @@ function run(db) {
   }
 }
 
-module.exports = { run };
+module.exports = { run, CATEGORIES, SETTINGS };

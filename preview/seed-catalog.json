@@ -1,0 +1,751 @@
+{
+ "categories": [
+  {
+   "id": 1,
+   "name": "Papas fritas",
+   "sort": 1,
+   "active": true
+  },
+  {
+   "id": 11,
+   "name": "Completos",
+   "sort": 2,
+   "active": true
+  },
+  {
+   "id": 40,
+   "name": "Sándwiches",
+   "sort": 3,
+   "active": true
+  },
+  {
+   "id": 59,
+   "name": "Para compartir",
+   "sort": 4,
+   "active": true
+  },
+  {
+   "id": 84,
+   "name": "Bebidas",
+   "sort": 5,
+   "active": true
+  }
+ ],
+ "products": [
+  {
+   "id": 2,
+   "categoryId": 1,
+   "name": "Papas fritas chicas",
+   "description": "Porción chica de papas fritas.",
+   "descriptionProvisional": true,
+   "price": 2000,
+   "priceIsTest": true,
+   "illustration": "papas-chicas.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 1,
+   "ingredients": [
+    {
+     "id": 3,
+     "name": "Papas fritas",
+     "removable": false,
+     "provisional": false
+    },
+    {
+     "id": 4,
+     "name": "Sal",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 5,
+   "categoryId": 1,
+   "name": "Papas fritas medianas",
+   "description": "Porción mediana de papas fritas.",
+   "descriptionProvisional": true,
+   "price": 3000,
+   "priceIsTest": true,
+   "illustration": "papas-medianas.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 2,
+   "ingredients": [
+    {
+     "id": 6,
+     "name": "Papas fritas",
+     "removable": false,
+     "provisional": false
+    },
+    {
+     "id": 7,
+     "name": "Sal",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 8,
+   "categoryId": 1,
+   "name": "Papas fritas grandes",
+   "description": "Porción grande de papas fritas.",
+   "descriptionProvisional": true,
+   "price": 4500,
+   "priceIsTest": true,
+   "illustration": "papas-grandes.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 3,
+   "ingredients": [
+    {
+     "id": 9,
+     "name": "Papas fritas",
+     "removable": false,
+     "provisional": false
+    },
+    {
+     "id": 10,
+     "name": "Sal",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 12,
+   "categoryId": 11,
+   "name": "Completo italiano normal",
+   "description": "Completo con tomate, palta y mayonesa (receta típica chilena, por confirmar con el local).",
+   "descriptionProvisional": true,
+   "price": 2500,
+   "priceIsTest": true,
+   "illustration": "italiano.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 1,
+   "ingredients": [
+    {
+     "id": 13,
+     "name": "Pan de completo",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 14,
+     "name": "Vienesa",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 15,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 16,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 17,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 18,
+   "categoryId": 11,
+   "name": "Completo italiano grande",
+   "description": "Versión grande del completo italiano (receta típica chilena, por confirmar con el local).",
+   "descriptionProvisional": true,
+   "price": 3500,
+   "priceIsTest": true,
+   "illustration": "italiano.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 2,
+   "ingredients": [
+    {
+     "id": 19,
+     "name": "Pan de completo",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 20,
+     "name": "Vienesa",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 21,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 22,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 23,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 24,
+   "categoryId": 11,
+   "name": "Completo dinámico normal",
+   "description": "Completo con varios agregados. Los agregados exactos están por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 2800,
+   "priceIsTest": true,
+   "illustration": "dinamico.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 3,
+   "ingredients": [
+    {
+     "id": 25,
+     "name": "Pan de completo",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 26,
+     "name": "Vienesa",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 27,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 28,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 29,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 30,
+     "name": "Chucrut",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 31,
+     "name": "Salsa americana",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 32,
+   "categoryId": 11,
+   "name": "Completo dinámico grande",
+   "description": "Versión grande del completo dinámico. Agregados por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 3800,
+   "priceIsTest": true,
+   "illustration": "dinamico.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 4,
+   "ingredients": [
+    {
+     "id": 33,
+     "name": "Pan de completo",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 34,
+     "name": "Vienesa",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 35,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 36,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 37,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 38,
+     "name": "Chucrut",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 39,
+     "name": "Salsa americana",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 41,
+   "categoryId": 40,
+   "name": "ASS normal",
+   "description": "Sándwich de carne. Ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 4500,
+   "priceIsTest": true,
+   "illustration": "ass.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 1,
+   "ingredients": [
+    {
+     "id": 42,
+     "name": "Pan",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 43,
+     "name": "Carne",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 44,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 45,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 46,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 47,
+   "categoryId": 40,
+   "name": "ASS grande",
+   "description": "Versión grande del ASS. Ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 5900,
+   "priceIsTest": true,
+   "illustration": "ass.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 2,
+   "ingredients": [
+    {
+     "id": 48,
+     "name": "Pan",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 49,
+     "name": "Carne",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 50,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 51,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 52,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 53,
+   "categoryId": 40,
+   "name": "Churrasco Rucka Monkey",
+   "description": "Churrasco de la casa. Ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 6500,
+   "priceIsTest": true,
+   "illustration": "churrasco.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 3,
+   "ingredients": [
+    {
+     "id": 54,
+     "name": "Pan",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 55,
+     "name": "Churrasco de carne",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 56,
+     "name": "Tomate",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 57,
+     "name": "Palta",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 58,
+     "name": "Mayonesa",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 60,
+   "categoryId": 59,
+   "name": "Chorrillana chica",
+   "description": "Papas fritas con carne y agregados. Ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 7900,
+   "priceIsTest": true,
+   "illustration": "chorrillana.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 1,
+   "ingredients": [
+    {
+     "id": 61,
+     "name": "Papas fritas",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 62,
+     "name": "Carne",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 63,
+     "name": "Cebolla",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 64,
+     "name": "Huevo",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 65,
+   "categoryId": 59,
+   "name": "Chorrillana grande",
+   "description": "Versión grande de la chorrillana. Ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 12900,
+   "priceIsTest": true,
+   "illustration": "chorrillana.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 2,
+   "ingredients": [
+    {
+     "id": 66,
+     "name": "Papas fritas",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 67,
+     "name": "Carne",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 68,
+     "name": "Cebolla",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 69,
+     "name": "Huevo",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 70,
+   "categoryId": 59,
+   "name": "Fajitas",
+   "description": "Tortillas con relleno. Relleno por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 5500,
+   "priceIsTest": true,
+   "illustration": "fajitas.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 3,
+   "ingredients": [
+    {
+     "id": 71,
+     "name": "Tortilla",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 72,
+     "name": "Carne",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 73,
+     "name": "Pimentón",
+     "removable": true,
+     "provisional": true
+    },
+    {
+     "id": 74,
+     "name": "Cebolla",
+     "removable": true,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 75,
+   "categoryId": 59,
+   "name": "Quesadillas",
+   "description": "Tortillas con queso. Otros ingredientes por confirmar con el local.",
+   "descriptionProvisional": true,
+   "price": 4500,
+   "priceIsTest": true,
+   "illustration": "quesadillas.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 4,
+   "ingredients": [
+    {
+     "id": 76,
+     "name": "Tortilla",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 77,
+     "name": "Queso",
+     "removable": false,
+     "provisional": false
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 78,
+   "categoryId": 59,
+   "name": "Empanaditas de queso",
+   "description": "Empanaditas rellenas de queso. Cantidad por porción por confirmar.",
+   "descriptionProvisional": true,
+   "price": 3500,
+   "priceIsTest": true,
+   "illustration": "empanaditas.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 5,
+   "ingredients": [
+    {
+     "id": 79,
+     "name": "Masa",
+     "removable": false,
+     "provisional": true
+    },
+    {
+     "id": 80,
+     "name": "Queso",
+     "removable": false,
+     "provisional": false
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 81,
+   "categoryId": 59,
+   "name": "Aros de cebolla",
+   "description": "Aros de cebolla fritos. Tipo de apanado por confirmar.",
+   "descriptionProvisional": true,
+   "price": 3000,
+   "priceIsTest": true,
+   "illustration": "aros.svg",
+   "photo": null,
+   "isPlaceholder": false,
+   "active": true,
+   "sort": 6,
+   "ingredients": [
+    {
+     "id": 82,
+     "name": "Cebolla",
+     "removable": false,
+     "provisional": false
+    },
+    {
+     "id": 83,
+     "name": "Apanado",
+     "removable": false,
+     "provisional": true
+    }
+   ],
+   "extras": []
+  },
+  {
+   "id": 85,
+   "categoryId": 84,
+   "name": "Bebida en lata (ejemplo)",
+   "description": "Opción provisional: reemplazar por las bebidas reales del local.",
+   "descriptionProvisional": true,
+   "price": 1200,
+   "priceIsTest": true,
+   "illustration": "lata.svg",
+   "photo": null,
+   "isPlaceholder": true,
+   "active": true,
+   "sort": 1,
+   "ingredients": [],
+   "extras": []
+  },
+  {
+   "id": 86,
+   "categoryId": 84,
+   "name": "Bebida 1,5 L (ejemplo)",
+   "description": "Opción provisional: reemplazar por las bebidas reales del local.",
+   "descriptionProvisional": true,
+   "price": 2500,
+   "priceIsTest": true,
+   "illustration": "botella.svg",
+   "photo": null,
+   "isPlaceholder": true,
+   "active": true,
+   "sort": 2,
+   "ingredients": [],
+   "extras": []
+  },
+  {
+   "id": 87,
+   "categoryId": 84,
+   "name": "Agua mineral (ejemplo)",
+   "description": "Opción provisional: reemplazar por las bebidas reales del local.",
+   "descriptionProvisional": true,
+   "price": 1000,
+   "priceIsTest": true,
+   "illustration": "agua.svg",
+   "photo": null,
+   "isPlaceholder": true,
+   "active": true,
+   "sort": 3,
+   "ingredients": [],
+   "extras": []
+  },
+  {
+   "id": 88,
+   "categoryId": 84,
+   "name": "Jugo (ejemplo)",
+   "description": "Opción provisional: reemplazar por las bebidas reales del local.",
+   "descriptionProvisional": true,
+   "price": 1300,
+   "priceIsTest": true,
+   "illustration": "jugo.svg",
+   "photo": null,
+   "isPlaceholder": true,
+   "active": true,
+   "sort": 4,
+   "ingredients": [],
+   "extras": []
+  }
+ ],
+ "nextId": 89
+}

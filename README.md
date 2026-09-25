@@ -38,6 +38,12 @@ Hay dos partes, y las dos funcionan completas en un celular:
 - Mientras la demo esté activa, los pedidos se llaman **DEMO-0001**, **DEMO-0002**, etc. Clientes y caja ven el aviso "MODO DEMOSTRACIÓN" y esos pedidos no cuentan como ventas reales.
 - **No se puede salir del modo demostración** mientras queden precios de prueba, bebidas de ejemplo, descripciones o ingredientes provisionales, datos bancarios de prueba o falte la dirección pública. El QR definitivo solo se genera fuera del modo demostración.
 
+## Vista previa en claude.ai (sin instalar nada)
+
+`preview/rucka-monkey-preview.html` es una versión de **una sola página** que usa la misma carta y el mismo panel, y guarda los pedidos en la base de datos compartida de claude.ai. Arriba tiene un selector **Cliente | Caja** para usar un teléfono de cada lado. Se genera con `npm run preview:build` y se prueba con dos navegadores simulados con `npm run preview:test`.
+
+Solo sirve para probar la experiencia. En la vista previa la lógica corre en el navegador, la caja se abre para el dueño o los editores de la página en claude.ai (sin contraseña) y los clientes necesitan una cuenta con acceso a la página. La protección completa (contraseña, comprobantes privados, recálculo en el servidor) está en la versión Node descrita abajo.
+
 ## Ejecutar
 
 Se necesita Node.js 22.13 o superior. La base de datos es SQLite, incluida en Node, y no hay que instalar nada más.

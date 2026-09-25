@@ -66,6 +66,21 @@ const RM = (() => {
     return { root: back, body: back.querySelector('.sheet-body'), foot: back.querySelector('.sheet-foot'), close };
   }
 
+  // Confirmación con botones grandes (reemplaza a window.confirm, que algunos navegadores bloquean en páginas incrustadas).
+  function confirmDialog(message, { ok = 'Confirmar', danger = false } = {}) {
+    return new Promise((resolve) => {
+      let answered = false;
+      const sh = sheet({
+        title: 'Confirmar',
+        body: `<p style="margin:0">${esc(message)}</p>`,
+        foot: `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-no>Cancelar</button><button class="btn ${danger ? 'btn-bad' : 'btn-primary'}" data-yes>${esc(ok)}</button></div>`,
+        onClose: () => { if (!answered) resolve(false); },
+      });
+      sh.root.querySelector('[data-yes]').addEventListener('click', () => { answered = true; sh.close(); resolve(true); });
+      sh.root.querySelector('[data-no]').addEventListener('click', () => sh.close());
+    });
+  }
+
   const store = {
     get(k, fallback) { try { const v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* almacenamiento no disponible */ } },
@@ -91,5 +106,5 @@ const RM = (() => {
     return out.length ? `<ul class="mods">${out.join('')}</ul>` : '';
   }
 
-  return { money, esc, api, toast, sheet, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
+  return { money, esc, api, toast, sheet, confirm: confirmDialog, store, uuid, STATUS, modsHtml, timeFmt, dateTimeFmt };
 })();
