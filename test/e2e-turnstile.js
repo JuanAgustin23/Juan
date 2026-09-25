@@ -34,9 +34,6 @@ const FAKE_WIDGET = `window.turnstile = {
   await new Promise((r) => server.once('listening', r));
   const BASE = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch();
-  // Estas pruebas revisan pedidos, no la bienvenida: se marca como ya vista (hay una prueba aparte).
-  const _newContext = browser.newContext.bind(browser);
-  browser.newContext = async (o) => { const c = await _newContext(o); await c.addInitScript(() => { try { sessionStorage.setItem('rm_bienvenida_vista', '1'); } catch { /* */ } }); return c; };
   const PHONE = { viewport: { width: 375, height: 800 }, isMobile: true, hasTouch: true, locale: 'es-CL' };
   const errors = [];
   try {

@@ -43,9 +43,6 @@ const shot = async (page, name) => { await page.waitForTimeout(350); await page.
   await new Promise((r) => server.once('listening', r));
   const BASE = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch();
-  // Estas pruebas revisan pedidos, no la bienvenida: se marca como ya vista (hay una prueba aparte).
-  const _newContext = browser.newContext.bind(browser);
-  browser.newContext = async (o) => { const c = await _newContext(o); await c.addInitScript(() => { try { sessionStorage.setItem('rm_bienvenida_vista', '1'); } catch { /* */ } }); return c; };
   const receiptPath = path.join(process.env.DATA_DIR, 'comprobante.png');
 
   try {

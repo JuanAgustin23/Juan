@@ -14,7 +14,7 @@
     "qr": "node scripts/make-qr.js",
     "preview:build": "node scripts/build-preview.js",
     "preview:test": "node scripts/build-preview.js && node test/e2e-preview.js",
-    "test:e2e": "node test/e2e-dos-telefonos.js && node test/e2e-turnstile.js && node test/e2e-bienvenida.js"
+    "test:e2e": "node test/e2e-dos-telefonos.js && node test/e2e-turnstile.js"
   },
   "dependencies": {
     "express": "^5.2.1",

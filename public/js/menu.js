@@ -416,45 +416,6 @@
   });
   window.addEventListener('popstate', route);
 
-  // ---------------- Bienvenida ----------------
-  // Se muestra una vez por visita al abrir la carta (p. ej. desde el QR). No reaparece al volver del carrito,
-  // del estado del pedido, al cambiar de categoría ni al recargar. Si la imagen no carga rápido, se omite.
-  const WELCOME_KEY = 'rm_bienvenida_vista';
-  function welcome() {
-    const el = $('#welcome');
-    if (!el) return;
-    let seen = false;
-    try { seen = !!sessionStorage.getItem(WELCOME_KEY); } catch { /* sin almacenamiento: se muestra */ }
-    if (seen || location.pathname.startsWith('/pedido/')) { el.remove(); return; }
-    try { sessionStorage.setItem(WELCOME_KEY, '1'); } catch { /* */ }
-    document.body.style.overflow = 'hidden';
-    let closed = false;
-    let auto;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      clearTimeout(auto);
-      el.classList.add('out');
-      document.body.style.overflow = '';
-      setTimeout(() => el.remove(), 600);
-    };
-    el.addEventListener('click', close);
-    el.addEventListener('keydown', (e) => { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); close(); } });
-    // Si la imagen tarda demasiado (mala señal), se entra directo a la carta.
-    const giveUp = setTimeout(close, 3000);
-    const main = el.querySelector('.welcome-img');
-    main.onload = () => {
-      clearTimeout(giveUp);
-      if (closed) return;
-      el.querySelector('.welcome-bg').src = main.src;
-      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
-      auto = setTimeout(close, 900 + 2000); // aparición (~0,9 s) + unos 2 s visible
-    };
-    main.onerror = close;
-    main.src = '/img/bienvenida';
-  }
-  welcome();
-
   (async () => {
     try {
       await loadMenu();
