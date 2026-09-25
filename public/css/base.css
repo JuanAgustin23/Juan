@@ -1,41 +1,50 @@
 /* Estilos compartidos: carta de clientes y panel de caja. Diseñados primero para celular. */
+@font-face {
+  font-family: "Fredoka"; src: url("/fonts/fredoka.woff2") format("woff2");
+  font-weight: 300 700; font-display: swap;
+}
+/* Identidad Rucka Monkey: plátano, kétchup y café. Tokens compartidos por la carta y la caja. */
 :root {
-  --bg: #fff8ef;
+  --bg: #fffbf3;
   --surface: #ffffff;
-  --surface-2: #fff1de;
-  --ink: #23170d;
-  --ink-2: #6b5646;
-  --line: #ecdcc6;
-  --brand: #d4471f;
+  --surface-2: #fff3d6;
+  --ink: #2b1b10;
+  --ink-2: #6e5646;
+  --line: #f0e2c8;
+  --brand: #e23e28;       /* kétchup: precios y botones principales */
   --brand-ink: #ffffff;
-  --brand-2: #ffc23d;
-  --ok: #1f8a4c;
-  --ok-bg: #e3f5ea;
-  --warn: #9a5b00;
-  --warn-bg: #fff3cd;
+  --brand-2: #ffc43d;     /* plátano: marca y acentos */
+  --brand-3: #ffe08a;
+  --leaf: #23945f;
+  --ok: #1d7f4c;
+  --ok-bg: #e2f5ea;
+  --warn: #8f5500;
+  --warn-bg: #fff1c7;
   --bad: #b3261e;
   --bad-bg: #fde7e5;
   --info: #1d5fa3;
   --info-bg: #e3effb;
   --demo: #6d28d9;
   --demo-bg: #efe6ff;
-  --radius: 16px;
-  --shadow: 0 6px 24px rgba(60, 30, 5, 0.1);
+  --radius: 18px;
+  --shadow: 0 8px 24px rgba(90, 45, 10, 0.12);
+  --shadow-sm: 0 2px 8px rgba(90, 45, 10, 0.08);
+  --display: "Fredoka", "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #17110b; --surface: #221910; --surface-2: #2c2016; --ink: #fbefe1; --ink-2: #c4ad97; --line: #3d2d1f;
-    --brand: #ff6a3d; --brand-2: #ffc23d; --ok: #58d08d; --ok-bg: #173424; --warn: #ffcf5c; --warn-bg: #3a2c0c;
+    --bg: #1a120b; --surface: #251a11; --surface-2: #33251a; --ink: #fbefe1; --ink-2: #c9b29c; --line: #43311f;
+    --brand: #ff6a4d; --brand-2: #ffc43d; --brand-3: #6b5213; --leaf: #4cc488; --ok: #58d08d; --ok-bg: #173424; --warn: #ffcf5c; --warn-bg: #3a2c0c;
     --bad: #ff8a80; --bad-bg: #3d1714; --info: #8cc3ff; --info-bg: #13283f; --demo: #c4a7ff; --demo-bg: #2a1d45;
-    --shadow: 0 6px 24px rgba(0, 0, 0, 0.4); color-scheme: dark;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #17110b; --surface: #221910; --surface-2: #2c2016; --ink: #fbefe1; --ink-2: #c4ad97; --line: #3d2d1f;
-  --brand: #ff6a3d; --brand-2: #ffc23d; --ok: #58d08d; --ok-bg: #173424; --warn: #ffcf5c; --warn-bg: #3a2c0c;
+  --bg: #1a120b; --surface: #251a11; --surface-2: #33251a; --ink: #fbefe1; --ink-2: #c9b29c; --line: #43311f;
+  --brand: #ff6a4d; --brand-2: #ffc43d; --brand-3: #6b5213; --leaf: #4cc488; --ok: #58d08d; --ok-bg: #173424; --warn: #ffcf5c; --warn-bg: #3a2c0c;
   --bad: #ff8a80; --bad-bg: #3d1714; --info: #8cc3ff; --info-bg: #13283f; --demo: #c4a7ff; --demo-bg: #2a1d45;
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4); color-scheme: dark;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35); color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +56,8 @@ body {
 }
 img { max-width: 100%; display: block; }
 button, input, select, textarea { font: inherit; color: inherit; }
-h1, h2, h3 { line-height: 1.15; margin: 0; }
+h1, h2, h3 { line-height: 1.15; margin: 0; font-family: var(--display); font-weight: 600; text-wrap: balance; }
+.sheet-head h2 { font-weight: 600; }
 [hidden] { display: none !important; }
 
 .demo-banner {

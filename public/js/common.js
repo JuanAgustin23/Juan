@@ -48,6 +48,9 @@ const RM = (() => {
     back.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" ${wide ? 'style="max-width:760px"' : ''}>
       <div class="sheet-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Cerrar">✕</button></div>
       <div class="sheet-body">${body}</div>${foot ? `<div class="sheet-foot">${foot}</div>` : ''}</div>`;
+    // Un aviso pendiente no debe quedar encima de la hoja que se abre
+    const t = document.querySelector('.toast');
+    if (t) t.hidden = true;
     const prevFocus = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

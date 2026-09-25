@@ -51,19 +51,23 @@ const illusDir = path.join(ROOT, 'public/img/illus');
 const illus = Object.fromEntries(fs.readdirSync(illusDir).filter((f) => f.endsWith('.svg')).sort()
   .map((f) => [f, 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fs.readFileSync(path.join(illusDir, f), 'utf8'))]));
 
+// Mascota y tipografía incrustadas (en claude.ai la página no puede pedir archivos propios por ruta)
+const monoUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fs.readFileSync(path.join(ROOT, 'public/img/marca/mono.svg'), 'utf8'));
+const fontUri = 'data:font/woff2;base64,' + fs.readFileSync(path.join(ROOT, 'public/fonts/fredoka.woff2')).toString('base64');
+const inlineAssets = (t) => t.split('/img/marca/mono.svg').join(monoUri).split('/fonts/fredoka.woff2').join(fontUri);
 const qrLib = fs.readFileSync(require.resolve('qrcode-generator/qrcode.js'), 'utf8');
 
 // La plataforma de claude.ai agrega <!doctype>, <html>, <head> y <body>: aquí va solo el contenido.
 const html = `<title>Rucka Monkey Demo</title>
 <meta name="description" content="Vista previa de la carta con pedidos y del panel de caja de Rucka Monkey (modo demostración)">
-<style>${read('public/css/base.css')}
+<style>${inlineAssets(read('public/css/base.css'))}
 .pv-fatal { max-width: 520px; margin: 40px auto; padding: 16px; }
 </style>
 <template id="css-cliente">${read('public/css/menu.css')}</template>
 <template id="css-caja">${read('public/css/admin.css')}</template>
 <div id="pvRoot"></div>
-<template id="tpl-cliente">${menuBody}</template>
-<template id="tpl-caja">${adminBody}</template>
+<template id="tpl-cliente">${inlineAssets(menuBody)}</template>
+<template id="tpl-caja">${inlineAssets(adminBody)}</template>
 <script>${safeScript(qrLib)}</script>
 <script>window.RM_ILLUSTRATIONS = ${JSON.stringify(illus)};</script>
 <script>${safeScript(read('public/js/common.js'))}</script>

@@ -37,7 +37,11 @@
 
   function renderMenu() {
     const cats = menu.categories;
-    $('#cats').innerHTML = cats.map((c, i) => `<a href="#cat-${c.id}" class="${i === 0 ? 'on' : ''}" data-cat="${c.id}">${esc(c.name)}</a>`).join('');
+    // Cada categoría lleva la imagen de su primer producto como ícono, para reconocerla de un vistazo.
+    $('#cats').innerHTML = cats.map((c, i) => {
+      const icon = c.products.find((p) => p.image)?.image;
+      return `<a href="#cat-${c.id}" class="${i === 0 ? 'on' : ''}" data-cat="${c.id}">${icon ? `<img src="${esc(icon)}" alt="" aria-hidden="true">` : ''}<span>${esc(c.name)}</span></a>`;
+    }).join('');
     $('#menu').innerHTML = cats.map((c) => `
       <section class="cat" id="cat-${c.id}" aria-labelledby="h-${c.id}">
         <h2 id="h-${c.id}">${esc(c.name)}</h2>
@@ -46,15 +50,15 @@
           ${c.products.map((p) => `
             <button class="card" data-product="${p.id}" aria-label="${esc(p.name)}, ${money(p.price)}">
               ${productImg(p)}
-              <div>
+              <div class="card-body">
                 <h3>${esc(p.name)}</h3>
                 <p class="desc">${esc(p.description)}</p>
-                <div class="row">
-                  <span class="price">${money(p.price)}</span>
+                <div class="tags">
                   ${p.priceIsTest ? '<span class="tag tag-demo">Precio de prueba</span>' : ''}
                   ${p.descriptionProvisional ? '<span class="tag tag-warn">Descripción provisional</span>' : ''}
                   ${p.isPlaceholder ? '<span class="tag tag-warn">Provisional</span>' : ''}
                 </div>
+                <div class="buy"><span class="price">${money(p.price)}</span><span class="add" aria-hidden="true">+</span></div>
               </div>
             </button>`).join('')}
         </div>
@@ -95,6 +99,8 @@
     const n = cartCount();
     $('#cartbar').hidden = n === 0;
     $('#cartCount').textContent = n;
+    $('#headCount').hidden = n === 0;
+    $('#headCount').textContent = n;
     if (products.size) $('#cartTotal').textContent = money(cartTotal());
   }
 
@@ -402,7 +408,9 @@
   document.addEventListener('click', (e) => {
     const card = e.target.closest('[data-product]');
     if (card) openProduct(Number(card.dataset.product));
-    if (e.target.closest('#openCart')) openCart();
+    if (e.target.closest('#openCart, #headCart')) {
+      if (cart.length) openCart(); else toast('Tu pedido está vacío: toca un producto para agregarlo');
+    }
     const link = e.target.closest('a[data-link], #backToMenu');
     if (link) { e.preventDefault(); history.pushState({}, '', link.getAttribute('href')); route(); }
   });
