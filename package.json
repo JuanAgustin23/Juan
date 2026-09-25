@@ -1,0 +1,26 @@
+{
+  "name": "rucka-monkey-carta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Carta digital con pedidos y panel de caja para Rucka Monkey (versión de demostración)",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "qr": "node scripts/make-qr.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "jsqr": "^1.4.0",
+    "playwright": "1.56",
+    "pngjs": "^7.0.0"
+  }
+}

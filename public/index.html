@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d4471f">
+  <title>Rucka Monkey · Carta</title>
+  <meta name="description" content="Carta digital y pedidos de Rucka Monkey">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/menu.css">
+</head>
+<body>
+  <div class="demo-banner" id="demoBanner" hidden>
+    MODO DEMOSTRACIÓN
+    <small>Precios, bebidas y datos bancarios de prueba. Los pedidos no son ventas reales.</small>
+  </div>
+
+  <div id="app">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">RM</div>
+        <div>
+          <h1 id="bizName">Rucka Monkey</h1>
+          <p>Elige, personaliza y envía tu pedido</p>
+        </div>
+      </div>
+      <p class="notice notice-info" id="lastOrder" hidden></p>
+    </header>
+    <nav class="cats" id="cats" aria-label="Categorías"></nav>
+    <main id="menu"><p class="muted">Cargando carta…</p></main>
+    <div class="cartbar" id="cartbar" hidden>
+      <button class="btn btn-primary" id="openCart"><span><span class="count" id="cartCount">0</span> Ver pedido</span><span id="cartTotal">$0</span></button>
+    </div>
+  </div>
+
+  <div id="statusView" class="status-page" hidden></div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/menu.js"></script>
+</body>
+</html>

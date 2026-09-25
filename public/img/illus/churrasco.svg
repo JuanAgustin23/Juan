@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Ilustración">
+<defs><radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#fde2c4"/><stop offset="1" stop-color="#8c3b2a"/></radialGradient>
+<linearGradient id="bun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3b45c"/><stop offset="1" stop-color="#c97a2c"/></linearGradient>
+<linearGradient id="fry" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe07a"/><stop offset="1" stop-color="#f0b429"/></linearGradient>
+<linearGradient id="meat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a4a2b"/><stop offset="1" stop-color="#5a2c17"/></linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".5" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+<rect width="400" height="300" fill="url(#bg)"/>
+<g opacity=".12" fill="#fff"><circle cx="40" cy="40" r="6"/><circle cx="360" cy="60" r="9"/><circle cx="330" cy="250" r="5"/><circle cx="70" cy="240" r="8"/><circle cx="200" cy="24" r="4"/></g>
+<ellipse cx="200" cy="262" rx="140" ry="16" fill="#000" opacity=".18"/>
+<path d="M95 200 Q200 250 305 200 L297 226 Q200 262 103 226Z" fill="url(#bun)"/>
+<path d="M89 196 Q200 214 311 196 L307 184 Q200 170 93 184Z" fill="url(#meat)"/>
+<path d="M101 188 q14 10 28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0" stroke="#7a3b1f" stroke-width="3" fill="none" opacity=".6"/>
+<path d="M92 182 Q200 196 308 182 L336 172 Q200 158 64 172Z" fill="#e63946"/><path d="M90 172 Q110 150 160 168 Q210 148 260 166 Q300 150 310 170 Q200 150 90 172Z" fill="#7cb342"/><path d="M98 164 q10 -8 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" stroke="#fffbe6" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M91 160 Q200 60 309 160 Q200 150 91 160Z" fill="url(#bun)"/>
+<path d="M125 128 Q200 80 245 118" stroke="#fff" stroke-width="8" fill="none" opacity=".25" stroke-linecap="round"/>
+<ellipse cx="150" cy="110" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(20 150 110)"/><ellipse cx="185" cy="100" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(-10 185 100)"/><ellipse cx="220" cy="102" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(15 220 102)"/><ellipse cx="250" cy="112" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(-20 250 112)"/><ellipse cx="170" cy="124" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(5 170 124)"/><ellipse cx="235" cy="126" rx="4" ry="2.5" fill="#fff4d6" transform="rotate(30 235 126)"/><g transform="translate(300 70)"><circle r="26" fill="#ffd23f"/><text y="7" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="18" fill="#6b2d12">RM</text></g>
+</svg>

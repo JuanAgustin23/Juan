@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Ilustración">
+<defs><radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#fff4d6"/><stop offset="1" stop-color="#f48c06"/></radialGradient>
+<linearGradient id="bun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3b45c"/><stop offset="1" stop-color="#c97a2c"/></linearGradient>
+<linearGradient id="fry" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe07a"/><stop offset="1" stop-color="#f0b429"/></linearGradient>
+<linearGradient id="meat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a4a2b"/><stop offset="1" stop-color="#5a2c17"/></linearGradient>
+<linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".5" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+<rect width="400" height="300" fill="url(#bg)"/>
+<g opacity=".12" fill="#fff"><circle cx="40" cy="40" r="6"/><circle cx="360" cy="60" r="9"/><circle cx="330" cy="250" r="5"/><circle cx="70" cy="240" r="8"/><circle cx="200" cy="24" r="4"/></g>
+<ellipse cx="200" cy="262" rx="140" ry="16" fill="#000" opacity=".18"/>
+<path d="M150 80 L250 80 L262 256 L138 256Z" fill="#fff" opacity=".35" stroke="#fff" stroke-width="4"/>
+<path d="M146 120 L254 120 L261 250 L139 250Z" fill="#f77f00"/><path d="M146 120 q27 -10 54 0 t54 0" stroke="#fcbf49" stroke-width="6" fill="none"/>
+<rect x="222" y="40" width="10" height="120" rx="4" fill="#06d6a0" transform="rotate(14 227 100)"/>
+<g transform="translate(262 92)"><circle r="30" fill="#ffba08"/><circle r="24" fill="#faa307"/><g stroke="#ffba08" stroke-width="3">
+<line x1="0" y1="-22" x2="0" y2="22"/><line x1="-22" y1="0" x2="22" y2="0"/><line x1="-16" y1="-16" x2="16" y2="16"/><line x1="-16" y1="16" x2="16" y2="-16"/></g></g>
+<rect x="156" y="126" width="12" height="118" fill="url(#gloss)"/>
+</svg>
