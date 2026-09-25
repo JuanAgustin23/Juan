@@ -510,7 +510,28 @@ function createApp() {
     res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
   });
   app.get('/admin.html', (_req, res) => res.redirect(301, '/caja'));
-  app.get('/pedido/:token', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+  // Imagen de bienvenida de la carta: se entrega tal cual (sin recomprimir). Si no hay archivo, 404 y la carta
+  // se sirve sin la pantalla de bienvenida (así no aparece ni un destello).
+  const WELCOME_FILES = ['bienvenida.webp', 'bienvenida.jpg', 'bienvenida.jpeg', 'bienvenida.png'];
+  const welcomeFile = () => {
+    const f = process.env.WELCOME_IMAGE || WELCOME_FILES.map((n) => path.join(PUBLIC_DIR, 'img', n)).find((n) => fs.existsSync(n));
+    return f && fs.existsSync(f) ? path.resolve(f) : null;
+  };
+  app.get('/img/bienvenida', (_req, res) => {
+    const f = welcomeFile();
+    if (!f) return res.status(404).end();
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.sendFile(f);
+  });
+  const WELCOME_RE = /\s*<!-- bienvenida -->[\s\S]*?<!-- \/bienvenida -->/;
+  const sendCarta = (_req, res) => {
+    let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+    if (!welcomeFile()) html = html.replace(WELCOME_RE, '');
+    res.set('Cache-Control', 'no-cache');
+    res.type('html').send(html);
+  };
+  app.get(['/', '/index.html'], sendCarta);
+  app.get('/pedido/:token', sendCarta);
   app.use(express.static(PUBLIC_DIR, { index: 'index.html', maxAge: 0 }));
 
   return { app, db, settings, adminRouter: admin };

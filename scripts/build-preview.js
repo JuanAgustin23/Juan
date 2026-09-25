@@ -44,7 +44,8 @@ const adminJs = patch(read('public/js/admin.js'), [
 const adminBody = patch(bodyOf(read('public/admin.html')), [
   ['<h1>Caja Rucka Monkey</h1>', '<h1>Caja Rucka Monkey</h1><p class="notice notice-info">En la vista previa, la caja solo se abre para el dueño o los editores de esta página en claude.ai.</p>'],
 ], 'admin.html');
-const menuBody = bodyOf(read('public/index.html'));
+// La bienvenida usa un archivo del servidor; en la vista previa de claude.ai no se incluye.
+const menuBody = bodyOf(read('public/index.html')).replace(/\s*<!-- bienvenida -->[\s\S]*?<!-- \/bienvenida -->/, '');
 
 // Ilustraciones incrustadas como data: URI
 const illusDir = path.join(ROOT, 'public/img/illus');

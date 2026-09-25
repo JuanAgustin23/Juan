@@ -314,6 +314,30 @@ main { max-width: 1100px; margin: 0 auto; padding: 4px 16px 130px; }
 
 /* En la carta el aviso sale abajo, sobre la barra del carrito, para no tapar el encabezado */
 .toast { top: auto; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+
+/* Bienvenida: la imagen completa (contain, sin recortes) sobre una copia desenfocada que llena la pantalla */
+.welcome {
+  position: fixed; inset: 0; z-index: 100; overflow: hidden; cursor: pointer; background: var(--brand-2);
+  transition: opacity .55s ease, visibility .55s;
+}
+.welcome-bg {
+  position: absolute; inset: -6%; width: 112%; height: 112%; max-width: none; object-fit: cover;
+  filter: blur(26px) saturate(1.1); opacity: 0; transition: opacity .9s ease;
+}
+.welcome-img {
+  /* Ocupa exactamente la pantalla (menos la muesca y la barra del teléfono) y muestra la imagen entera */
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%; max-width: none; object-fit: contain;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  opacity: 0; filter: blur(12px); transform: scale(1.04);
+  transition: opacity .9s ease, filter 1.1s ease, transform 1.4s ease;
+}
+.welcome.in .welcome-bg { opacity: .85; }
+.welcome.in .welcome-img { opacity: 1; filter: blur(0); transform: none; }
+.welcome.out { opacity: 0; visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .welcome-img, .welcome-bg { transition: opacity .3s ease; filter: none; transform: none; }
+  .welcome-bg { filter: blur(26px); }
+}
 </template>
 <template id="css-caja">html { scroll-padding-bottom: 90px; }
 @media (min-width: 900px) { html { scroll-padding-bottom: 0; } }
@@ -464,7 +488,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 4px 16px 130px; }
 }
 </template>
 <div id="pvRoot"></div>
-<template id="tpl-cliente"><div class="demo-banner" id="demoBanner" hidden>
+<template id="tpl-cliente">
+  <div class="demo-banner" id="demoBanner" hidden>
     MODO DEMOSTRACIÓN
     <small>Precios, bebidas y datos bancarios de prueba. Los pedidos no son ventas reales.</small>
   </div>
@@ -3866,6 +3891,45 @@ const RMPreview = (() => {
     if (link) { e.preventDefault(); history.pushState({}, '', link.getAttribute('href')); route(); }
   });
   window.addEventListener('popstate', route);
+
+  // ---------------- Bienvenida ----------------
+  // Se muestra una vez por visita al abrir la carta (p. ej. desde el QR). No reaparece al volver del carrito,
+  // del estado del pedido, al cambiar de categoría ni al recargar. Si la imagen no carga rápido, se omite.
+  const WELCOME_KEY = 'rm_bienvenida_vista';
+  function welcome() {
+    const el = $('#welcome');
+    if (!el) return;
+    let seen = false;
+    try { seen = !!sessionStorage.getItem(WELCOME_KEY); } catch { /* sin almacenamiento: se muestra */ }
+    if (seen || location.pathname.startsWith('/pedido/')) { el.remove(); return; }
+    try { sessionStorage.setItem(WELCOME_KEY, '1'); } catch { /* */ }
+    document.body.style.overflow = 'hidden';
+    let closed = false;
+    let auto;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      clearTimeout(auto);
+      el.classList.add('out');
+      document.body.style.overflow = '';
+      setTimeout(() => el.remove(), 600);
+    };
+    el.addEventListener('click', close);
+    el.addEventListener('keydown', (e) => { if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); close(); } });
+    // Si la imagen tarda demasiado (mala señal), se entra directo a la carta.
+    const giveUp = setTimeout(close, 3000);
+    const main = el.querySelector('.welcome-img');
+    main.onload = () => {
+      clearTimeout(giveUp);
+      if (closed) return;
+      el.querySelector('.welcome-bg').src = main.src;
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+      auto = setTimeout(close, 900 + 2000); // aparición (~0,9 s) + unos 2 s visible
+    };
+    main.onerror = close;
+    main.src = '/img/bienvenida';
+  }
+  welcome();
 
   (async () => {
     try {
