@@ -41,21 +41,41 @@ const RMPreview = (() => {
       if (!c?.use) throw new Error('Esta vista previa debe abrirse desde claude.ai');
       [db, assets, user] = await Promise.all([c.use('db'), c.use('assets'), c.use('user')]);
       if (!db) throw new Error('La base de datos compartida no está disponible en esta vista');
-      await new Promise((resolve, reject) => {
-        let pending = 3;
-        const done = () => { if (--pending === 0) resolve(); };
-        let a = false; let b = false; let o = false;
-        db.doc('menu/catalog').onSnapshot((s) => { catalog = s.exists ? structuredClone(s.data()) : null; if (!a) { a = true; done(); } notify(); }, reject);
-        db.doc('menu/settings').onSnapshot((s) => { settings = s.exists ? { ...s.data() } : {}; if (!b) { b = true; done(); } notify(); }, reject);
-        db.collection('orders').onSnapshot((snap) => {
+      // Primero una lectura normal (la página funciona aunque falle lo "en vivo");
+      // después, suscripción en vivo, y si la plataforma la rechaza, consulta periódica.
+      await Promise.all([
+        watch(db.doc('menu/catalog'), (s) => { catalog = s.exists ? structuredClone(s.data()) : null; }, 15000),
+        watch(db.doc('menu/settings'), (s) => { settings = s.exists ? { ...s.data() } : {}; }, 15000),
+        watch(db.collection('orders'), (snap) => {
           orders.clear();
           for (const d of snap.docs) orders.set(d.id, d.data());
-          if (!o) { o = true; done(); }
-          notify();
-        }, reject);
-      });
+        }, 4000),
+      ]);
     })();
     return ready;
+  }
+  let liveErrors = 0;
+  async function watch(ref, apply, pollMs) {
+    const run = (snap) => { apply(snap); notify(); };
+    let first = null;
+    for (let i = 0; i < 3 && !first; i++) {
+      try { first = await ref.get(); } catch (e) { if (i === 2) throw e; await new Promise((r) => setTimeout(r, 800 * (i + 1))); }
+    }
+    run(first);
+    let timer = null;
+    const poll = () => {
+      if (timer) return;
+      timer = setInterval(async () => {
+        if (document.hidden) return;
+        try { run(await ref.get()); } catch { /* reintenta en la próxima vuelta */ }
+      }, pollMs);
+    };
+    try {
+      ref.onSnapshot(run, (e) => { liveErrors++; console.warn('Actualización en vivo no disponible, se consulta cada', pollMs, 'ms', e?.code, e?.message); poll(); });
+    } catch (e) {
+      liveErrors++;
+      poll();
+    }
   }
   const notify = () => listeners.forEach((fn) => { try { fn(); } catch { /* */ } });
   const onChange = (fn) => listeners.add(fn);

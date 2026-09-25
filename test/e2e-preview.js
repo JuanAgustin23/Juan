@@ -25,6 +25,8 @@ const noHScroll = async (page, where) => {
   const errors = [];
   try {
     const cajaCtx = await browser.newContext(PHONE);
+    // Los dos teléfonos simulan el fallo de la suscripción en vivo que se vio en claude.ai
+    await cajaCtx.addCookies([{ name: 'snapfail', value: '1', url: BASE }]);
     const caja = await cajaCtx.newPage();
     caja.on('pageerror', (e) => errors.push('caja: ' + e.message));
     await caja.goto(BASE);
@@ -35,7 +37,7 @@ const noHScroll = async (page, where) => {
     log('teléfono del cajero: vista Caja abierta sin contraseña (dueño de la página)');
 
     const cliCtx = await browser.newContext(PHONE);
-    await cliCtx.addCookies([{ name: 'rol', value: 'cliente', url: BASE }]);
+    await cliCtx.addCookies([{ name: 'rol', value: 'cliente', url: BASE }, { name: 'snapfail', value: '1', url: BASE }]);
     const cli = await cliCtx.newPage();
     cli.on('pageerror', (e) => errors.push('cliente: ' + e.message));
     await cli.goto(BASE);

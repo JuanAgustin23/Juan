@@ -46,6 +46,8 @@ function createMockServer() {
 // Se ejecuta en el navegador: imita window.claude.use("db" | "assets" | "user").
 function clientMock() {
   let cache = { version: -1, docs: {} };
+  // Con la cookie snapfail=1 la suscripción en vivo falla como en claude.ai ("Invalid subscription id").
+  const snapFail = /snapfail=1/.test(document.cookie);
   const subs = new Set();
   async function refresh() {
     const r = await (await fetch('/_mock/db')).json();
@@ -62,14 +64,14 @@ function clientMock() {
     id: p.split('/').pop(), path: p,
     get: async () => { await refresh(); return snapDoc(p); },
     set: (d) => write('set', p, d), update: (d) => write('update', p, d), delete: () => write('delete', p),
-    onSnapshot(next) { const fn = () => next(snapDoc(p)); subs.add(fn); refresh().then(fn); return () => subs.delete(fn); },
+    onSnapshot(next, error) { if (snapFail) { setTimeout(() => error({ code: 'unavailable', message: 'Invalid subscription id.' }), 50); return () => {}; } const fn = () => next(snapDoc(p)); subs.add(fn); refresh().then(fn); return () => subs.delete(fn); },
   });
   const colRef = (c) => {
     const list = () => Object.keys(cache.docs).filter((k) => k.startsWith(c + '/') && k.split('/').length === c.split('/').length + 1).sort().map(snapDoc);
     return {
       path: c, doc: (id) => docRef(`${c}/${id || Math.random().toString(36).slice(2)}`),
       get: async () => { await refresh(); const d = list(); return { docs: d, size: d.length, empty: !d.length }; },
-      onSnapshot(next) { const fn = () => { const d = list(); next({ docs: d, size: d.length, empty: !d.length, docChanges: () => [], metadata: {} }); }; subs.add(fn); refresh().then(fn); return () => subs.delete(fn); },
+      onSnapshot(next, error) { if (snapFail) { setTimeout(() => error({ code: 'unavailable', message: 'Invalid subscription id.' }), 50); return () => {}; } const fn = () => { const d = list(); next({ docs: d, size: d.length, empty: !d.length, docChanges: () => [], metadata: {} }); }; subs.add(fn); refresh().then(fn); return () => subs.delete(fn); },
     };
   };
   const db = { doc: docRef, collection: colRef };

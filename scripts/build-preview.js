@@ -101,7 +101,7 @@ const html = `<title>Rucka Monkey Demo</title>
     if (mode === 'caja') runAdmin(); else runMenu();
   }).catch(function (err) {
     document.getElementById('pvRoot').innerHTML = '<div class="pv-fatal"><p class="notice notice-bad" style="border-radius:12px;padding:12px;background:var(--bad-bg);color:var(--bad)"></p></div>';
-    document.querySelector('.pv-fatal p').textContent = 'No se pudo conectar con la base de datos compartida: ' + (err && err.message || err) + '. Abre esta página desde claude.ai con tu cuenta.';
+    document.querySelector('.pv-fatal p').textContent = 'No se pudo cargar la carta desde la base de datos compartida (' + (err && (err.code || err.message) || err) + '). Recarga la página; si sigue, avísale a Claude con este mensaje.';
   });
   function runMenu() {
 ${safeScript(menuJs)}
