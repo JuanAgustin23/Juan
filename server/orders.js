@@ -19,12 +19,12 @@ class OrderError extends Error {
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 const intIds = (arr) => [...new Set((Array.isArray(arr) ? arr : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].sort((a, b) => a - b);
 
-function normalize(raw) {
+function normalize(raw, { nameOptional = false } = {}) {
   if (!raw || typeof raw !== 'object') throw new OrderError(400, 'BAD_REQUEST', 'Pedido inválido');
   const key = String(raw.idempotencyKey || '');
   if (!/^[A-Za-z0-9-]{16,64}$/.test(key)) throw new OrderError(400, 'BAD_REQUEST', 'Falta el identificador del pedido');
   const customerName = clean(raw.customerName, 40);
-  if (customerName.length < 2) throw new OrderError(400, 'NAME_REQUIRED', 'Escribe tu nombre para el pedido');
+  if (!(nameOptional && customerName === '') && customerName.length < 2) throw new OrderError(400, 'NAME_REQUIRED', 'Escribe tu nombre para el pedido');
   const paymentMethod = raw.paymentMethod;
   if (!['efectivo', 'transferencia'].includes(paymentMethod)) throw new OrderError(400, 'BAD_PAYMENT', 'Elige efectivo o transferencia');
   if (!Array.isArray(raw.items) || raw.items.length === 0) throw new OrderError(400, 'EMPTY', 'El carrito está vacío');
@@ -72,8 +72,10 @@ function payloadHash(o) {
   return crypto.createHash('sha256').update(JSON.stringify([o.customerName, o.paymentMethod, o.items])).digest('hex');
 }
 
-function createOrder(db, settings, raw, receipt) {
-  const o = normalize(raw);
+// opts.source: 'qr' (carta del cliente) o 'caja' (ingresado por el cajero; el nombre es opcional).
+function createOrder(db, settings, raw, receipt, opts = {}) {
+  const source = opts.source === 'caja' ? 'caja' : 'qr';
+  const o = normalize(raw, { nameOptional: source === 'caja' });
   const hash = payloadHash(o);
 
   // Evita pedidos duplicados: el mismo identificador devuelve el pedido ya creado.
@@ -100,14 +102,14 @@ function createOrder(db, settings, raw, receipt) {
     const token = crypto.randomBytes(18).toString('base64url');
     const { lastInsertRowid: orderId } = db.prepare(`
       INSERT INTO orders (code, public_token, idempotency_key, payload_hash, customer_name, payment_method, total,
-                          has_notes, receipt_file, receipt_mime, is_demo, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+                          has_notes, receipt_file, receipt_mime, is_demo, created_at, updated_at, source, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
       code, token, o.key, hash, o.customerName, o.paymentMethod, total, hasNotes,
-      receipt?.file ?? null, receipt?.mime ?? null, isDemo, now, now);
+      receipt?.file ?? null, receipt?.mime ?? null, isDemo, now, now, source, source === 'caja' ? String(opts.createdBy || '').slice(0, 40) : null);
     const insItem = db.prepare(`INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity, removed_json, extras_json, note, line_total, sort)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     lines.forEach((l, idx) => insItem.run(orderId, l.productId, l.name, l.unit, l.quantity, JSON.stringify(l.removed), JSON.stringify(l.extras), l.note, l.lineTotal, idx));
-    db.prepare('INSERT INTO order_events (order_id, status, detail, at) VALUES (?, ?, ?, ?)').run(orderId, 'pendiente', 'Pedido recibido', now);
+    db.prepare('INSERT INTO order_events (order_id, status, detail, at) VALUES (?, ?, ?, ?)').run(orderId, 'pendiente', source === 'caja' ? `Ingresado por caja${opts.createdBy ? ` (${String(opts.createdBy).slice(0, 40)})` : ''}` : 'Pedido recibido', now);
     db.exec('COMMIT');
     return { order: db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId), duplicate: false };
   } catch (e) {

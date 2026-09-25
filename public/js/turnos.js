@@ -41,6 +41,15 @@ window.RMTurnos = (() => {
       <span class="mv-r">${esc(x.reason)}<small>${hora(x.at)} · ${esc(x.by)}</small></span><b>${x.kind === 'ingreso' ? '+' : x.kind === 'devolucion_transferencia' ? '' : '−'}${money(x.amount)}</b></li>`).join('')}</ul>`
     : '<p class="hint">Sin ingresos ni retiros.</p>');
 
+  // Separación por origen (QR / ingresado por caja). Los totales del turno son la suma de ambas columnas.
+  function originTable(po) {
+    if (!po) return '';
+    const r = (label, k) => `<tr><th>${label}</th><td>${k(po.qr)}</td><td>${k(po.caja)}</td></tr>`;
+    return `<h3 class="section-title">Por origen</h3><div class="origin-wrap"><table class="origin">
+      <thead><tr><th></th><th>QR</th><th>Caja</th></tr></thead><tbody>
+      ${r('Pedidos recibidos', (x) => x.recibidos)}${r('Cobrados', (x) => x.cobrados)}
+      ${r('Efectivo', (x) => money(x.efectivo))}${r('Transferencias', (x) => money(x.transferencias))}</tbody></table></div>`;
+  }
   function staffField(id = 'tsBy') {
     return `<label class="field"><span>Responsable</span><input class="input" id="${id}" maxlength="40" autocomplete="name" placeholder="Tu nombre" value="${esc(store.get('rm_staff', ''))}"></label>`;
   }
@@ -81,6 +90,7 @@ window.RMTurnos = (() => {
           ${steps(e)}
           <div class="transfer-box"><span>Transferencias confirmadas en la cuenta <small>(aparte, no están en la caja)</small></span><b>${money(t.confirmadas)}</b><small>${t.cantidad} pedido(s)</small></div>
           ${counters(s.summary.pedidos)}
+          ${originTable(s.summary.porOrigen)}
           <div class="two-btn"><button class="btn big-btn" id="tsIn">+ Ingreso de efectivo</button><button class="btn big-btn" id="tsOut">− Retiro de efectivo</button></div>
         </div>
         <div class="card-s"><h2>Movimientos del turno</h2>${movesList(s.summary.movimientos)}</div>
@@ -160,7 +170,7 @@ window.RMTurnos = (() => {
     const sh = sheet({
       title: 'Cerrar turno',
       body: `${pend.length ? `<div class="notice notice-warn"><b>${pend.length} pedido(s) pendiente(s)</b>. Revísalos antes de cerrar:</div>
-          <ul class="pend">${pend.map((o) => `<li><b>${esc(o.code)}</b> ${esc(o.customerName)}<span>${o.paymentMethod === 'transferencia' ? `Transferencia${o.receiptAttached ? ' · con comprobante (sin verificar)' : ' · sin comprobante'}` : 'Efectivo'} · ${hora(o.createdAt)}</span><b>${money(o.total)}</b></li>`).join('')}</ul>` : '<p class="notice notice-ok">No hay pedidos pendientes.</p>'}
+          <ul class="pend">${pend.map((o) => `<li><b>${esc(o.code)}</b> ${esc(o.customerName || 'Sin nombre')}<span>${o.source === 'caja' ? 'Caja · ' : 'QR · '}${o.paymentMethod === 'transferencia' ? `Transferencia${o.receiptAttached ? ' · con comprobante (sin verificar)' : o.source === 'caja' ? ' · abono sin verificar' : ' · sin comprobante'}` : 'Efectivo'} · ${hora(o.createdAt)}</span><b>${money(o.total)}</b></li>`).join('')}</ul>` : '<p class="notice notice-ok">No hay pedidos pendientes.</p>'}
         <h3 class="section-title">Cálculo del efectivo esperado</h3>
         <div id="clCalc">${steps(e)}</div>
         <label class="field" style="margin-top:12px"><span>Efectivo contado físicamente (CLP)</span><input class="input big-input" id="clCounted" inputmode="numeric" pattern="[0-9]*" placeholder="${e.esperado}"></label>
@@ -208,8 +218,9 @@ window.RMTurnos = (() => {
         <h3 class="section-title">Efectivo</h3>
         ${steps(sum.efectivo, s.status === 'cerrado' ? s.countedCash : null)}
         <div class="transfer-box" style="margin-top:10px"><span>Transferencias confirmadas <small>(aparte)</small></span><b>${money(sum.transferencias.confirmadas)}</b><small>${sum.transferencias.cantidad} pedido(s)</small></div>
+        ${originTable(sum.porOrigen)}
         <h3 class="section-title">Cobros del turno</h3>
-        ${sum.cobros.length ? `<ul class="pend">${sum.cobros.map((o) => `<li><b>${esc(o.code)}</b> ${esc(o.customerName)}<span>${o.paymentMethod === 'efectivo' ? 'Efectivo' : 'Transferencia'} · ${hora(o.paidAt)}</span><b>${money(o.total)}</b></li>`).join('')}</ul>` : '<p class="hint">Sin cobros.</p>'}
+        ${sum.cobros.length ? `<ul class="pend">${sum.cobros.map((o) => `<li><b>${esc(o.code)}</b> ${esc(o.customerName || 'Sin nombre')}<span>${o.source === 'caja' ? 'Ingresado por caja' : 'QR'} · ${o.paymentMethod === 'efectivo' ? 'Efectivo' : 'Transferencia'} · ${hora(o.paidAt)}</span><b>${money(o.total)}</b></li>`).join('')}</ul>` : '<p class="hint">Sin cobros.</p>'}
         <h3 class="section-title">Movimientos de efectivo</h3>
         ${movesList(sum.movimientos)}
         ${s.corrections.length ? `<h3 class="section-title">Correcciones después del cierre</h3>

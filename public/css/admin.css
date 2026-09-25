@@ -201,3 +201,54 @@ html { scroll-padding-bottom: 90px; }
 .corr-top b { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 15px; }
 .corr p { margin: 0; font-size: 14px; }
 .corr small { color: var(--ink-2); font-size: 12px; }
+
+/* Nuevo pedido en caja */
+.view-head .new-order { min-height: 44px; font-size: 15px; border-radius: 14px; }
+.tag-src-caja { background: var(--brand-2); color: var(--ink); }
+.mo-sheet { max-height: 100dvh; height: 100dvh; border-radius: 0; }
+@media (min-width: 760px) { .mo-sheet { height: 90vh; border-radius: 22px; } }
+.mo-cats { margin-top: 10px; }
+.mo-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mo-prod { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px; }
+.mo-main { display: flex; align-items: center; gap: 10px; background: none; border: 0; text-align: left; cursor: pointer; min-height: 56px; padding: 0; min-width: 0; color: inherit; }
+.mo-main img, .mo-main .noimg { width: 56px; height: 44px; border-radius: 10px; object-fit: cover; background: var(--surface-2); flex: none; }
+.mo-txt { display: grid; min-width: 0; }
+.mo-txt b { font-size: 15.5px; }
+.mo-txt span { font-size: 13px; color: var(--ink-2); }
+.mo-in { min-width: 28px; height: 28px; border-radius: 14px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 800; font-size: 14px; padding: 0 6px; }
+.mo-add { width: 52px; height: 52px; border-radius: 14px; border: 0; background: var(--brand); color: #fff; font: 600 30px/1 var(--display); cursor: pointer; }
+.mo-add:active { transform: scale(.95); }
+.mo-lines { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
+.mo-lines li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.mo-lh { display: flex; justify-content: space-between; gap: 10px; font-size: 16px; }
+.mo-la { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.mo-total { margin: 4px 0 10px; }
+.mo-pay { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mo-pay label { position: relative; }
+.mo-pay input { position: absolute; opacity: 0; inset: 0; }
+.mo-pay span { display: grid; place-items: center; min-height: 54px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); font-weight: 800; }
+.mo-pay input:checked + span { border-color: var(--brand); color: var(--brand); background: #fff0ec; }
+.mo-pay input:focus-visible + span { outline: 3px solid var(--brand-2); }
+.mo-paynow { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px; }
+.mo-paynow small { display: block; color: var(--ink-2); font-weight: 500; }
+.origin-wrap { overflow-x: auto; }
+.origin { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; background: var(--surface); border-radius: 12px; overflow: hidden; }
+.origin th, .origin td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+.origin td { white-space: nowrap; }
+.origin th:first-child { text-align: left; font-weight: 600; color: var(--ink-2); }
+.origin thead th { font-weight: 800; color: var(--ink); background: var(--surface-2); }
+.origin-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: -8px 0 18px; }
+.origin-split div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid; gap: 2px; }
+.origin-split span { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.origin-split b { font: 700 20px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.origin-split small { font-size: 12px; color: var(--ink-2); }
+
+/* En el celular, "Nuevo pedido" va en su propia fila: grande y sin apretar el título */
+@media (max-width: 599px) {
+  .view-head { flex-wrap: wrap; }
+  .view-head .new-order { order: 5; flex-basis: 100%; min-height: 52px; font-size: 17px; }
+}
+.o-items .it > span:last-child { white-space: nowrap; }
+.mo-help { margin: 0 0 8px; }
+.mo-sheet .o-actions { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.mo-sheet .o-actions [data-back] { padding: 0 14px; }

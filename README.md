@@ -51,6 +51,23 @@ Hay dos partes, y las dos funcionan completas en un celular:
 
 Pruebas: `node --test test/caja.test.js` y `node test/e2e-caja.js`.
 
+## Pedidos ingresados por caja
+
+Sirven para clientes que piden en el mostrador. En **Pedidos → + Nuevo pedido**, el cajero:
+- elige productos y cantidades;
+- quita ingredientes y escribe indicaciones por producto;
+- ve el total antes de crear el pedido.
+
+El nombre del cliente es opcional; si no lo da, el pedido se identifica por su número.
+
+Se guarda en la misma tabla `orders` que los pedidos por QR, con `source = 'caja'` y el nombre de quien lo ingresó. Usa los mismos precios, con el mismo cálculo en el servidor y la misma protección contra duplicados.
+- **Efectivo:** si el cajero marca "Recibí $X", el pago se confirma en ese momento y queda en el turno abierto.
+- **Transferencia:** solo se confirma si el cajero marca que verificó el abono en la cuenta bancaria. Si no, el pedido queda pendiente.
+
+Aparece en la preparación, en los indicadores y en el cierre del turno, separado por origen (QR / Caja), sin duplicar ventas.
+
+Pruebas: `node --test test/mostrador.test.js` y `node test/e2e-mostrador.js`.
+
 ## Vista previa en claude.ai (sin instalar nada)
 
 `preview/rucka-monkey-preview.html` es una versión de **una sola página** que usa la misma carta y el mismo panel, y guarda los pedidos en la base de datos compartida de claude.ai. Arriba tiene un selector **Cliente | Caja** para usar un teléfono de cada lado. Se genera con `npm run preview:build` y se prueba con dos navegadores simulados con `npm run preview:test`.

@@ -219,6 +219,7 @@ function createApp() {
       total: o.total, hasNotes: bool(o.has_notes), notesReviewed: bool(o.notes_reviewed), isDemo: bool(o.is_demo),
       receipt: o.receipt_file ? `/api/admin/orders/${o.id}/receipt` : null, staffNote: o.staff_note,
       createdAt: o.created_at, paidAt: o.paid_at, updatedAt: o.updated_at, items: itemsOf(db, o.id), events,
+      source: o.source || 'qr', createdBy: o.created_by || null,
     };
   }
 
@@ -254,20 +255,43 @@ function createApp() {
     return { name: name || 'Sin nombre', session: auth.sessionTag(req) };
   };
 
-  admin.post('/orders/:id/status', handle((req, res) => {
-    const id = Number(req.params.id);
+  // Cambio de estado + registro en el turno de caja, en una sola transacción.
+  function applyStatus(id, body, actor) {
     db.exec('BEGIN IMMEDIATE');
     try {
       const before = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
-      if (before) shifts.beforeStatusChange(before, req.body);
-      const after = changeStatus(db, id, req.body);
-      shifts.afterStatusChange(before, after, req.body, actorOf(req));
+      if (before) shifts.beforeStatusChange(before, body);
+      const after = changeStatus(db, id, body);
+      shifts.afterStatusChange(before, after, body, actor);
       db.exec('COMMIT');
-      res.json({ order: adminOrder(db.prepare('SELECT * FROM orders WHERE id = ?').get(id)) });
     } catch (e) {
       db.exec('ROLLBACK');
       throw e;
     }
+    return db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+  }
+  admin.post('/orders/:id/status', handle((req, res) => {
+    res.json({ order: adminOrder(applyStatus(Number(req.params.id), req.body, actorOf(req))) });
+  }));
+
+  // Pedido ingresado por caja (cliente sin teléfono). Mismo sistema y mismos precios que el QR:
+  // el servidor recalcula el total. Si el cajero ya cobró, se confirma el pago por el mismo camino
+  // de siempre (efectivo recibido / abono verificado en la cuenta), así queda en el turno abierto.
+  admin.post('/orders', handle((req, res) => {
+    const b = req.body || {};
+    const actor = actorOf(req);
+    const payNow = b.payNow === true;
+    if (payNow && b.paymentMethod === 'efectivo' && b.cashReceived !== true) throw new OrderError(400, 'CASH_NOT_RECEIVED', 'Marca que recibiste el efectivo, o deja el pedido pendiente de pago');
+    if (payNow && b.paymentMethod === 'transferencia' && b.bankVerified !== true) throw new OrderError(400, 'BANK_NOT_VERIFIED', 'Verifica el abono en la cuenta bancaria antes de confirmar. Un pantallazo no confirma el pago.');
+    const { order, duplicate } = createOrder(db, settings, {
+      idempotencyKey: b.idempotencyKey, customerName: b.customerName, paymentMethod: b.paymentMethod, items: b.items, expectedTotal: b.expectedTotal,
+    }, null, { source: 'caja', createdBy: actor.name });
+    let final = order;
+    if (!duplicate && payNow) {
+      // El cajero escribió las indicaciones, así que ya están revisadas.
+      final = applyStatus(order.id, { status: 'pago_confirmado', notesReviewed: true, cashReceived: b.cashReceived === true, bankVerified: b.bankVerified === true }, actor);
+    }
+    res.status(duplicate ? 200 : 201).json({ order: adminOrder(db.prepare('SELECT * FROM orders WHERE id = ?').get(final.id)), duplicate });
   }));
 
   // ---------- Apertura y cierre de caja ----------
@@ -324,7 +348,14 @@ function createApp() {
           COALESCE(SUM(CASE WHEN status IN ${PAID} THEN total ELSE 0 END), 0) AS ventas
         FROM orders WHERE is_demo = ? AND created_at >= ? AND created_at < ?`).get(demo, start, end);
       const pend = db.prepare("SELECT COUNT(*) AS n FROM orders WHERE is_demo = ? AND status = 'pendiente'").get(demo).n;
+      const bySource = Object.fromEntries(['qr', 'caja'].map((src) => {
+        const x = db.prepare(`SELECT COUNT(*) AS pedidos, SUM(CASE WHEN status IN ${PAID} THEN 1 ELSE 0 END) AS pagados,
+            COALESCE(SUM(CASE WHEN status IN ${PAID} THEN total ELSE 0 END), 0) AS ventas
+          FROM orders WHERE is_demo = ? AND source = ? AND created_at >= ? AND created_at < ?`).get(demo, src, start, end);
+        return [src, { pedidos: x.pedidos, pagados: x.pagados || 0, ventas: x.ventas }];
+      }));
       return {
+        porOrigen: bySource,
         pedidosDelDia: r.pedidos, rechazados: r.rechazados || 0, pendientes: pend,
         ventasConfirmadas: r.ventas, pedidosPagados: r.pagados || 0,
         ticketPromedio: r.pagados ? Math.round(r.ventas / r.pagados) : 0,

@@ -78,7 +78,7 @@ function createShifts(db, { isDemo }) {
   function summarize(shift, until = shift.closed_at || Date.now()) {
     const demo = shift.is_demo;
     const from = shift.opened_at;
-    const paid = db.prepare(`SELECT id, code, customer_name, payment_method, total, status, paid_at FROM orders
+    const paid = db.prepare(`SELECT id, code, customer_name, payment_method, total, status, paid_at, source FROM orders
                              WHERE paid_shift_id = ? ORDER BY paid_at`).all(shift.id);
     const cashOrders = paid.filter((o) => o.payment_method === 'efectivo');
     // Efectivo: todo lo cobrado entró a la caja (si luego se devuelve, se anota como devolución).
@@ -90,12 +90,20 @@ function createShifts(db, { isDemo }) {
     const countEvents = (status) => db.prepare(`SELECT COUNT(DISTINCT e.order_id) AS n FROM order_events e JOIN orders o ON o.id = e.order_id
                                                 WHERE o.is_demo = ? AND e.status = ? AND e.at >= ? AND e.at < ?`).get(demo, status, from, until + 1).n;
     const received = db.prepare('SELECT COUNT(*) AS n FROM orders WHERE is_demo = ? AND created_at >= ? AND created_at < ?').get(demo, from, until + 1).n;
-    const pendingList = db.prepare(`SELECT id, code, customer_name, payment_method, total, created_at, receipt_file IS NOT NULL AS has_receipt
+    const pendingList = db.prepare(`SELECT id, code, customer_name, payment_method, total, created_at, source, receipt_file IS NOT NULL AS has_receipt
                                     FROM orders WHERE is_demo = ? AND status = 'pendiente' ORDER BY created_at`).all(demo)
-      .map((o) => ({ id: o.id, code: o.code, customerName: o.customer_name, paymentMethod: o.payment_method, total: o.total, createdAt: o.created_at, receiptAttached: !!o.has_receipt }));
+      .map((o) => ({ id: o.id, code: o.code, customerName: o.customer_name, paymentMethod: o.payment_method, total: o.total, createdAt: o.created_at, receiptAttached: !!o.has_receipt, source: o.source || 'qr' }));
     const inProgress = db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE is_demo = ? AND status IN ('pago_confirmado','en_preparacion','listo')`).get(demo).n;
 
     const cashSales = sum(cashOrders);
+    // Por origen: QR (el cliente desde la carta) o ingresado por caja. Suman lo mismo que los totales.
+    const receivedBy = (src) => db.prepare('SELECT COUNT(*) AS n FROM orders WHERE is_demo = ? AND source = ? AND created_at >= ? AND created_at < ?').get(demo, src, from, until + 1).n;
+    const porOrigen = Object.fromEntries(['qr', 'caja'].map((src) => [src, {
+      recibidos: receivedBy(src),
+      cobrados: paid.filter((o) => (o.source || 'qr') === src).length,
+      efectivo: sum(cashOrders.filter((o) => (o.source || 'qr') === src)),
+      transferencias: sum(transferOrders.filter((o) => (o.source || 'qr') === src)),
+    }]));
     const ingresos = mv('ingreso');
     const retiros = mv('retiro');
     const devoluciones = mv('devolucion');
@@ -104,7 +112,8 @@ function createShifts(db, { isDemo }) {
       pedidos: { recibidos: received, cobrados: paid.length, entregados: countEvents('entregado'), rechazados: countEvents('rechazado'), pendientes: pendingList.length, enCurso: inProgress },
       efectivo: { inicial: shift.opening_cash, ventas: cashSales, ventasCantidad: cashOrders.length, ingresos, retiros, devoluciones, esperado: expected },
       transferencias: { confirmadas: sum(transferOrders), cantidad: transferOrders.length, devueltas: mv('devolucion_transferencia') },
-      cobros: paid.map((o) => ({ id: o.id, code: o.code, customerName: o.customer_name, paymentMethod: o.payment_method, total: o.total, paidAt: o.paid_at, status: o.status })),
+      porOrigen,
+      cobros: paid.map((o) => ({ id: o.id, code: o.code, customerName: o.customer_name, paymentMethod: o.payment_method, total: o.total, paidAt: o.paid_at, status: o.status, source: o.source || 'qr' })),
       movimientos: moves.map((m) => ({ id: m.id, kind: m.kind, amount: m.amount, reason: m.reason, orderCode: m.order_code, by: m.by_name, session: m.by_session, at: m.at })),
       pendientes: pendingList,
     };

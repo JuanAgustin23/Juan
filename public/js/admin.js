@@ -11,7 +11,7 @@
   const ACTIVE = ['pendiente', 'pago_confirmado', 'en_preparacion', 'listo'];
   const state = {
     tab: 'pedidos', filter: store.get('rm_admin_filter', 'activos'), orders: [], seen: null, fresh: new Set(),
-    sound: store.get('rm_admin_sound', false), catalog: [], settings: {}, demoMode: true, unseen: 0,
+    mine: new Set(), sound: store.get('rm_admin_sound', false), catalog: [], settings: {}, demoMode: true, unseen: 0,
   };
 
   // ---------------- Sesión ----------------
@@ -109,7 +109,7 @@
       const { orders } = await call('/api/admin/orders');
       const ids = new Set(orders.map((o) => o.id));
       if (state.seen) {
-        const nuevos = orders.filter((o) => !state.seen.has(o.id));
+        const nuevos = orders.filter((o) => !state.seen.has(o.id) && !state.mine.has(o.id));
         if (nuevos.length) {
           nuevos.forEach((o) => state.fresh.add(o.id));
           if (state.tab !== 'pedidos' || document.hidden) state.unseen += nuevos.length;
@@ -159,7 +159,7 @@
     } catch { /* sin audio */ }
   }
   function notifyNew(list) {
-    toast(list.length === 1 ? `Nuevo pedido ${list[0].code} · ${list[0].customerName}` : `${list.length} pedidos nuevos`, 4000);
+    toast(list.length === 1 ? `Nuevo pedido ${list[0].code}${list[0].customerName ? ` · ${list[0].customerName}` : ''}` : `${list.length} pedidos nuevos`, 4000);
     if (state.sound) beep();
     navigator.vibrate?.([200, 100, 200]);
   }
@@ -207,14 +207,16 @@
     return `<ul class="o-items">${o.items.map((it) => `<li><div class="it"><span><span class="qty">${it.quantity}</span>${esc(it.productName)}</span><span>${money(it.lineTotal)}</span></div>${modsHtml(it)}</li>`).join('')}</ul>`;
   }
 
+  // Origen del pedido: desde la carta con QR o ingresado por el cajero
+  const sourceTag = (o) => (o.source === 'caja' ? `<span class="tag tag-src-caja">Ingresado por caja${o.createdBy ? ` · ${esc(o.createdBy)}` : ''}</span>` : '<span class="tag">QR</span>');
   function orderCard(o) {
     const n = NEXT[o.status];
     const payTag = o.paymentMethod === 'transferencia'
       ? `<span class="tag tag-info">Transferencia</span>${o.receipt ? '<span class="tag">📎 Comprobante</span>' : '<span class="tag tag-warn">Sin comprobante</span>'}`
       : '<span class="tag">Efectivo</span>';
     return `<article class="order st-${o.status} ${state.fresh.has(o.id) ? 'fresh' : ''}" data-id="${o.id}">
-      <div class="o-head"><span class="o-code">${esc(o.code)}</span><span class="o-name">${esc(o.customerName)}</span><span class="muted">${timeFmt.format(o.createdAt)}</span></div>
-      <div class="o-meta">${statusTag(o.status)}${payTag}${o.isDemo ? '<span class="tag tag-demo">DEMO</span>' : ''}</div>
+      <div class="o-head"><span class="o-code">${esc(o.code)}</span><span class="o-name">${o.customerName ? esc(o.customerName) : '<span class="muted">Sin nombre</span>'}</span><span class="muted">${timeFmt.format(o.createdAt)}</span></div>
+      <div class="o-meta">${statusTag(o.status)}${sourceTag(o)}${payTag}${o.isDemo ? '<span class="tag tag-demo">DEMO</span>' : ''}</div>
       ${o.hasNotes && o.status === 'pendiente' ? `<div class="alert-notes">⚠ Tiene indicaciones: revísalas antes de confirmar${o.notesReviewed ? ' (ya revisadas)' : ''}</div>` : ''}
       ${itemsHtml(o)}
       <div class="o-total"><span>Total</span><span>${money(o.total)}</span></div>
@@ -259,7 +261,7 @@
     const needsNotes = o.hasNotes && !o.notesReviewed;
     const body = `
       ${o.isDemo ? '<p class="notice notice-demo">Pedido de <b>demostración</b>: no es una venta real.</p>' : ''}
-      <p style="margin:0 0 6px"><b>${esc(o.customerName)}</b> · ${esc(o.code)} · ${transfer ? 'Transferencia' : 'Efectivo'}</p>
+      <p style="margin:0 0 6px"><b>${esc(o.customerName || 'Sin nombre')}</b> · ${esc(o.code)} · ${transfer ? 'Transferencia' : 'Efectivo'} · ${o.source === 'caja' ? 'Ingresado por caja' : 'QR'}</p>
       ${itemsHtml(o)}
       <div class="o-total" style="margin:10px 0"><span>Total a cobrar</span><span>${money(o.total)}</span></div>
       ${transfer ? (o.receipt
@@ -555,7 +557,8 @@
         <div class="kpi"><div class="k">Pedidos del día</div><div class="v">${d.pedidosDelDia}</div><div class="s">${d.rechazados} rechazado(s)</div></div>
         <div class="kpi"><div class="k">Pendientes</div><div class="v">${d.pendientes}</div><div class="s">esperando pago</div></div>
         <div class="kpi"><div class="k">Ventas confirmadas</div><div class="v">${money(d.ventasConfirmadas)}</div><div class="s">${d.pedidosPagados} pedido(s) pagados</div></div>
-        <div class="kpi"><div class="k">Ticket promedio</div><div class="v">${money(d.ticketPromedio)}</div><div class="s">de pedidos pagados</div></div></div>`;
+        <div class="kpi"><div class="k">Ticket promedio</div><div class="v">${money(d.ticketPromedio)}</div><div class="s">de pedidos pagados</div></div></div>
+        ${d.porOrigen ? `<div class="origin-split">${[['qr', 'Por QR'], ['caja', 'Ingresados por caja']].map(([k, label]) => `<div><span>${label}</span><b>${money(d.porOrigen[k].ventas)}</b><small>${d.porOrigen[k].pedidos} pedido(s) · ${d.porOrigen[k].pagados} pagado(s)</small></div>`).join('')}</div>` : ''}`;
       $('#stats').innerHTML = `
         <p class="hint">Día ${esc(s.dia)} · hora de Chile (${esc(s.zonaHoraria)}). Solo cuentan como ventas los pedidos con pago confirmado por caja.</p>
         <h2 style="font-size:17px;margin:12px 0 8px">Operación real</h2>${kpis(s.real)}
@@ -682,6 +685,15 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !wakeLock) keepAwake(); });
   document.addEventListener('click', () => { if (!wakeLock) keepAwake(); }, { once: true });
 
-  window.RMAdmin = { call, staffName, switchTab: (t) => switchTab(t) };
+  window.RMAdmin = {
+    call, staffName, switchTab: (t) => switchTab(t),
+    // Un pedido creado desde este celular: se muestra de inmediato y no se anuncia como "nuevo"
+    orderCreated(o) {
+      state.mine.add(o.id);
+      state.fresh.add(o.id);
+      if (state.filter !== 'todos' && state.filter !== 'activos' && state.filter !== o.status) { state.filter = 'activos'; store.set('rm_admin_filter', 'activos'); }
+      poll();
+    },
+  };
   boot().catch(() => showLogin());
 })();

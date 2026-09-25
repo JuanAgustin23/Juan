@@ -114,6 +114,10 @@ function migrate(db) {
       at INTEGER NOT NULL
     );
   `);
+  // Origen del pedido: 'qr' (el cliente desde la carta) o 'caja' (ingresado por el cajero). Misma tabla.
+  const cols = db.prepare('PRAGMA table_info(orders)').all().map((c) => c.name);
+  if (!cols.includes('source')) db.exec("ALTER TABLE orders ADD COLUMN source TEXT NOT NULL DEFAULT 'qr'");
+  if (!cols.includes('created_by')) db.exec('ALTER TABLE orders ADD COLUMN created_by TEXT');
 }
 
 module.exports = { open, DATA_DIR, RECEIPTS_DIR, UPLOADS_DIR };

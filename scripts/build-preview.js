@@ -42,6 +42,8 @@ const adminJs = patch(read('public/js/admin.js'), [
 ], 'admin.js');
 
 const adminBody = patch(bodyOf(read('public/admin.html')), [
+  // Crear pedidos desde caja necesita el servidor real: en la vista previa no se muestra
+  ['\n          <button class="btn btn-primary btn-sm new-order" id="newOrder">+ Nuevo pedido</button>', ''],
   ['<h1>Caja Rucka Monkey</h1>', '<h1>Caja Rucka Monkey</h1><p class="notice notice-info">En la vista previa, la caja solo se abre para el dueño o los editores de esta página en claude.ai.</p>'],
 ], 'admin.html');
 const menuBody = bodyOf(read('public/index.html'));
