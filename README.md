@@ -38,6 +38,19 @@ Hay dos partes, y las dos funcionan completas en un celular:
 - Mientras la demo esté activa, los pedidos se llaman **DEMO-0001**, **DEMO-0002**, etc. Clientes y caja ven el aviso "MODO DEMOSTRACIÓN" y esos pedidos no cuentan como ventas reales.
 - **No se puede salir del modo demostración** mientras queden precios de prueba, bebidas de ejemplo, descripciones o ingredientes provisionales, datos bancarios de prueba o falte la dirección pública. El QR definitivo solo se genera fuera del modo demostración.
 
+## Apertura y cierre de caja (pestaña Caja)
+
+- **Abrir turno:** se registra el efectivo inicial para vuelto y el responsable. Solo puede haber un turno abierto a la vez: uno para demostración y otro para la operación real, que no se mezclan.
+- **Cobros del turno:** un cobro pertenece al turno que estaba abierto cuando caja confirmó el pago. Un comprobante adjunto no cuenta hasta que caja marca "verifiqué el abono". Efectivo y transferencias se suman por separado.
+- **Ingresos y retiros de efectivo:** se registran con monto, motivo, hora y responsable, y no se borran. Al rechazar un pedido ya cobrado, caja indica si devolvió el dinero, y la devolución se registra en el turno.
+- **Cierre:** muestra los pedidos pendientes para revisarlos, calcula `efectivo esperado = inicial + ventas en efectivo + ingresos − retiros − devoluciones`, pide el efectivo contado e indica si hay sobrante o faltante. Se guarda una foto del cierre que no se modifica.
+- **Correcciones posteriores:** si después se rechaza o reabre un pedido de un turno cerrado, se agrega una corrección con quién, cuándo y cuánto. El cierre original queda igual.
+- **Historial:** se consulta por día (hora de Chile) y turno.
+- **Responsable:** es el nombre que escribe el cajero en su celular, junto con una huella de la sesión. La contraseña de caja es compartida, así que ese nombre no se verifica por persona.
+- **Persistencia:** los cierres se guardan en `rucka.db` (en `DATA_DIR`). En Render gratuito se pierden al reiniciar; hace falta un disco persistente, y el panel lo advierte en rojo.
+
+Pruebas: `node --test test/caja.test.js` y `node test/e2e-caja.js`.
+
 ## Vista previa en claude.ai (sin instalar nada)
 
 `preview/rucka-monkey-preview.html` es una versión de **una sola página** que usa la misma carta y el mismo panel, y guarda los pedidos en la base de datos compartida de claude.ai. Arriba tiene un selector **Cliente | Caja** para usar un teléfono de cada lado. Se genera con `npm run preview:build` y se prueba con dos navegadores simulados con `npm run preview:test`.

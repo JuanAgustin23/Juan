@@ -10,6 +10,8 @@ const { createAuth } = require('./auth');
 const { createOrder, itemsOf, changeStatus, OrderError } = require('./orders');
 const { chileDayRange, TZ } = require('./time');
 const { clientIp, ipSource, RateLimiter, turnstile, originGuard } = require('./security');
+const { createShifts } = require('./shifts');
+const { chileDateStr } = require('./time');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -20,6 +22,7 @@ function createApp() {
     set: (k, v) => db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(k, String(v)),
   };
   const auth = createAuth(settings, db);
+  const shifts = createShifts(db, { isDemo: () => settings.get('demo_mode') === '1' });
   const app = express();
   // Detrás del HTTPS del hosting: "1" = confiar en un proxy (número, no texto, para que Express lo entienda).
   const tp = process.env.TRUST_PROXY;
@@ -243,8 +246,54 @@ function createApp() {
     res.sendFile(path.join(dbm.RECEIPTS_DIR, path.basename(o.receipt_file)));
   }));
 
+  // Responsable de cada acción: el nombre que el cajero escribió en su celular + huella de la sesión.
+  const actorOf = (req) => {
+    let name = '';
+    try { name = decodeURIComponent(String(req.get('X-Staff-Name') || '')); } catch { /* */ }
+    name = name.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 40);
+    return { name: name || 'Sin nombre', session: auth.sessionTag(req) };
+  };
+
   admin.post('/orders/:id/status', handle((req, res) => {
-    res.json({ order: adminOrder(changeStatus(db, Number(req.params.id), req.body)) });
+    const id = Number(req.params.id);
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const before = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+      if (before) shifts.beforeStatusChange(before, req.body);
+      const after = changeStatus(db, id, req.body);
+      shifts.afterStatusChange(before, after, req.body, actorOf(req));
+      db.exec('COMMIT');
+      res.json({ order: adminOrder(db.prepare('SELECT * FROM orders WHERE id = ?').get(id)) });
+    } catch (e) {
+      db.exec('ROLLBACK');
+      throw e;
+    }
+  }));
+
+  // ---------- Apertura y cierre de caja ----------
+  admin.get('/shifts/current', (_req, res) => {
+    const s = shifts.openShift();
+    const unassigned = db.prepare("SELECT COUNT(*) AS n FROM orders WHERE is_demo = ? AND paid_at IS NOT NULL AND paid_shift_id IS NULL AND status != 'rechazado' AND paid_at >= ?")
+      .get(isDemo() ? 1 : 0, chileDayRange().start).n;
+    res.json({ shift: shifts.view(s), demo: isDemo(), today: chileDateStr(), cobrosSinTurnoHoy: unassigned, almacenamiento: storageInfo() });
+  });
+  admin.post('/shifts/open', handle((req, res) => {
+    res.status(201).json({ shift: shifts.open({ openingCash: req.body?.openingCash, by: req.body?.by, session: auth.sessionTag(req) }) });
+  }));
+  admin.post('/shifts/movements', handle((req, res) => {
+    res.status(201).json({ shift: shifts.addMovement({ ...req.body, session: auth.sessionTag(req) }) });
+  }));
+  admin.post('/shifts/close', handle((req, res) => {
+    res.json({ shift: shifts.close({ ...req.body, session: auth.sessionTag(req) }) });
+  }));
+  admin.get('/shifts', handle((req, res) => {
+    const date = String(req.query.date || chileDateStr());
+    res.json({ date, shifts: shifts.listByDate(date, isDemo()), demo: isDemo() });
+  }));
+  admin.get('/shifts/:id', handle((req, res) => {
+    const s = shifts.getShift(Number(req.params.id));
+    if (!s) throw new OrderError(404, 'NOT_FOUND', 'Turno no encontrado');
+    res.json({ shift: shifts.view(s, { live: true }) });
   }));
 
   admin.post('/orders/:id/staff-note', handle((req, res) => {
@@ -256,7 +305,9 @@ function createApp() {
 
   admin.delete('/demo-orders', handle((_req, res) => {
     const files = db.prepare('SELECT receipt_file FROM orders WHERE is_demo = 1 AND receipt_file IS NOT NULL').all();
+    if (shifts.openShift(true)) throw new OrderError(409, 'SHIFT_OPEN', 'Cierra el turno de demostración antes de borrar los pedidos de demostración.');
     const r = db.prepare('DELETE FROM orders WHERE is_demo = 1').run();
+    shifts.purgeDemo();
     for (const f of files) fs.rmSync(path.join(dbm.RECEIPTS_DIR, path.basename(f.receipt_file)), { force: true });
     res.json({ deleted: Number(r.changes) });
   }));
@@ -438,6 +489,20 @@ function createApp() {
     res.json({ ok: true });
   }));
 
+  // ¿Los datos sobreviven a reinicios? En Render sin disco (DATA_DIR sin definir) el disco es temporal.
+  function storageInfo() {
+    const onRender = !!process.env.RENDER;
+    let separateDisk = false;
+    try { separateDisk = fs.statSync(dbm.DATA_DIR).dev !== fs.statSync(__dirname).dev; } catch { /* */ }
+    const persistent = onRender ? separateDisk : true;
+    return {
+      persistente: persistent,
+      detalle: persistent
+        ? (separateDisk ? 'Datos en un disco aparte del código' : 'Datos en la carpeta de datos del servidor')
+        : 'Render sin disco persistente: los cierres y pedidos se borran al reiniciar, dormirse o desplegar',
+    };
+  }
+
   function readiness() {
     const q = (sql) => db.prepare(sql).all().map((r) => r.name);
     const blockers = [];
@@ -461,6 +526,7 @@ function createApp() {
 
   admin.post('/demo-mode', handle((req, res) => {
     const enable = req.body?.enabled === true;
+    if (shifts.openShift(!enable)) throw new OrderError(409, 'SHIFT_OPEN', 'Hay un turno de caja abierto. Ciérralo antes de cambiar de modo.');
     if (!enable) {
       const r = readiness();
       if (!r.ready) throw new OrderError(409, 'NOT_READY', 'Aún hay datos provisionales. Revisa la lista antes de salir del modo demostración.', r);

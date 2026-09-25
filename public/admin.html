@@ -27,6 +27,7 @@
     <nav class="tabs" aria-label="Secciones">
       <div class="tabs-brand"><img src="/img/marca/mono.svg" alt="" width="36" height="36"><span>Rucka Monkey<small>Caja</small></span></div>
       <button data-tab="pedidos" class="on"><span class="ti">🧾</span>Pedidos<b class="badge" id="newBadge" hidden>0</b></button>
+      <button data-tab="caja"><span class="ti">💵</span>Caja</button>
       <button data-tab="productos"><span class="ti">🍔</span>Productos</button>
       <button data-tab="resumen"><span class="ti">📊</span>Resumen</button>
       <button data-tab="ajustes"><span class="ti">⚙️</span>Ajustes</button>
@@ -40,6 +41,9 @@
         </header>
         <div class="chips" id="orderFilters" role="tablist"></div>
         <div id="orders" class="orders"></div>
+      </section>
+      <section data-view="caja" hidden>
+        <div id="caja"></div>
       </section>
       <section data-view="productos" hidden>
         <header class="view-head"><h1>Productos</h1><button class="btn btn-primary btn-sm" id="newProduct">+ Nuevo</button></header>
@@ -58,5 +62,6 @@
 
   <script src="/js/common.js"></script>
   <script src="/js/admin.js"></script>
+  <script src="/js/turnos.js"></script>
 </body>
 </html>

@@ -62,8 +62,12 @@
     }
   });
   // Cualquier 401 devuelve al inicio de sesión.
-  async function call(url, opts) {
-    try { return await api(url, opts); } catch (e) {
+  // Nombre de quien atiende en este celular: se envía con cada acción para dejar registro (auditoría).
+  const staffName = () => store.get('rm_staff', '') || '';
+  async function call(url, opts = {}) {
+    const headers = { ...(opts.headers || {}) };
+    if (staffName()) headers['X-Staff-Name'] = encodeURIComponent(staffName());
+    try { return await api(url, { ...opts, headers }); } catch (e) {
       if (e.status === 401) showLogin();
       throw e;
     }
@@ -77,7 +81,7 @@
 
   // ---------------- Pestañas ----------------
   function switchTab(tab) {
-    if (!['pedidos', 'productos', 'resumen', 'ajustes'].includes(tab)) tab = 'pedidos';
+    if (!['pedidos', 'caja', 'productos', 'resumen', 'ajustes'].includes(tab)) tab = 'pedidos';
     state.tab = tab;
     $$('.tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     $$('[data-view]').forEach((v) => { v.hidden = v.dataset.view !== tab; });
@@ -86,6 +90,10 @@
     if (tab === 'productos') loadCatalog();
     if (tab === 'resumen') loadStats();
     if (tab === 'ajustes') renderSettings();
+    if (tab === 'caja') {
+      if (window.RMTurnos) window.RMTurnos.render($('#caja'));
+      else $('#caja').innerHTML = '<p class="notice notice-info">La apertura y cierre de caja no está disponible en esta vista.</p>';
+    }
     window.scrollTo(0, 0);
   }
   $('.tabs').addEventListener('click', (e) => {
@@ -265,6 +273,15 @@
           : `<label class="check"><input type="checkbox" id="cPay"><span>Recibí <b>${money(o.total)}</b> en efectivo</span></label>`}
       </div>`;
     const sh = sheet({ title: `Confirmar pago ${o.code}`, body, foot: '<div class="o-actions"><button class="btn btn-bad" data-rej>Rechazar</button><button class="btn btn-ok" data-ok disabled>Confirmar pago</button></div>' });
+    // Aviso (no bloquea): si no hay turno abierto, este cobro no quedará en ningún cierre de caja
+    call('/api/admin/shifts/current').then((d) => {
+      if (d && !d.shift && sh.root.isConnected) {
+        const n = document.createElement('p');
+        n.className = 'notice notice-warn';
+        n.innerHTML = '<b>No hay un turno de caja abierto.</b> El cobro se registrará igual, pero no quedará en ningún cierre. Abre la caja en la pestaña Caja.';
+        sh.body.prepend(n);
+      }
+    }).catch(() => {});
     const ok = $('[data-ok]', sh.root);
     const upd = () => { ok.disabled = !(($('#cNotes', sh.root)?.checked ?? true) && $('#cPay', sh.root).checked); };
     sh.root.addEventListener('change', upd);
@@ -302,15 +319,25 @@
   }
 
   function reject(o) {
+    // Si el pedido ya estaba cobrado, se pregunta si se devolvió el dinero (queda en el turno de caja).
+    const paidCash = o.paidAt && o.paymentMethod === 'efectivo';
+    const paidTransfer = o.paidAt && o.paymentMethod === 'transferencia';
     const sh = sheet({
       title: `Rechazar ${o.code}`,
       body: `<label class="field"><span>Motivo</span><select class="input" id="rr">
         <option>No llegó la transferencia</option><option>Monto transferido incorrecto</option><option>El local no puede cumplir una indicación</option>
-        <option>Producto agotado</option><option>Pedido duplicado o de prueba</option><option>Otro</option></select></label>`,
+        <option>Producto agotado</option><option>Pedido duplicado o de prueba</option><option>Otro</option></select></label>
+        ${paidCash ? `<p class="notice notice-warn">Este pedido ya estaba <b>cobrado en efectivo</b> (${money(o.total)}).</p>
+          <label class="check"><input type="checkbox" id="rrCash"><span>Devolví <b>${money(o.total)}</b> en efectivo al cliente (se descuenta de la caja)</span></label>` : ''}
+        ${paidTransfer ? `<p class="notice notice-warn">Este pedido ya tenía la <b>transferencia confirmada</b> (${money(o.total)}).</p>
+          <label class="check"><input type="checkbox" id="rrTransfer"><span>Devolví la transferencia al cliente</span></label>` : ''}`,
       foot: '<button class="btn btn-bad btn-block" data-go>Rechazar pedido</button>',
     });
     $('[data-go]', sh.root).addEventListener('click', async () => {
-      if (await setStatus(o, 'rechazado', { reason: $('#rr', sh.root).value })) sh.close();
+      const extra = { reason: $('#rr', sh.root).value };
+      if (paidCash) extra.cashRefunded = $('#rrCash', sh.root).checked;
+      if (paidTransfer) extra.transferRefunded = $('#rrTransfer', sh.root).checked;
+      if (await setStatus(o, 'rechazado', extra)) sh.close();
     });
   }
 
@@ -655,5 +682,6 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !wakeLock) keepAwake(); });
   document.addEventListener('click', () => { if (!wakeLock) keepAwake(); }, { once: true });
 
+  window.RMAdmin = { call, staffName, switchTab: (t) => switchTab(t) };
   boot().catch(() => showLogin());
 })();

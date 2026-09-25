@@ -37,4 +37,19 @@ function chileDayRange(ms = Date.now()) {
   return { start, end, label };
 }
 
-module.exports = { TZ, chileDayRange };
+// Día de Chile a partir de 'AAAA-MM-DD' (para consultar el historial por fecha).
+function chileDateRange(str) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const start = localMidnight(y, mo, d);
+  const n = new Date(Date.UTC(y, mo - 1, d + 1));
+  return { start, end: localMidnight(n.getUTCFullYear(), n.getUTCMonth() + 1, n.getUTCDate()), label: `${m[3]}-${m[2]}-${m[1]}` };
+}
+// 'AAAA-MM-DD' del día de Chile en que cae un instante.
+function chileDateStr(ms = Date.now()) {
+  const p = parts(ms);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
+
+module.exports = { TZ, chileDayRange, chileDateRange, chileDateStr };

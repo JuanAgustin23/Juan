@@ -133,7 +133,13 @@ function createAuth(settings, db) {
     res.json({ ok: true });
   }
 
-  return { requireAdmin, isValid, login, logout, changePassword };
+  // Huella corta de la sesión (para registros de auditoría: qué dispositivo hizo cada acción)
+  function sessionTag(req) {
+    const id = sessionId(req);
+    return id ? sessionHash(id).slice(0, 8) : '';
+  }
+
+  return { requireAdmin, isValid, login, logout, changePassword, sessionTag };
 }
 
 function parseCookies(header = '') {
